@@ -3,9 +3,17 @@
   "version": "0.0.0-alpha.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc"
   },
-  "keywords": ["postcss", "postcss-plugin", "whitepaper", "css variable"],
+  "keywords": [
+    "postcss",
+    "postcss-plugin",
+    "whitepaper",
+    "css variable"
+  ],
   "author": "Eugene Tropin <yarastqt@gmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "3.7.3"
+  }
 }
