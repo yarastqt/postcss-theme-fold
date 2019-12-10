@@ -22,6 +22,7 @@ function getVariableMeta(
 }
 
 type ThemeFoldOptions = {
+  // TODO: Use correct type.
   themes: any
 }
 
