@@ -1,0 +1,7 @@
+$color-base: #000;
+$color-bg: color($color-base l(+15%));
+
+.Theme_color_b {
+  --color-1: $color-base;
+  --color-2: $color-bg;
+}
