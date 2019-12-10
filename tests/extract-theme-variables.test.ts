@@ -14,7 +14,7 @@ describe('extract-theme-variables', () => {
       ['.Theme_color_a', new Map([
         ['--color-1', '#fff'],
         ['--color-2', '#000'],
-      ])]
+      ])],
     ])
     expect(variablesMap).toEqual(expected)
     done()
