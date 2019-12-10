@@ -2,12 +2,13 @@ import postcss from 'postcss'
 
 import { THEME_SELECTOR_RE, VARIABLE_DECL_RE } from './shared'
 
-type StringMap = Map<string, string>
+export type StringMap = Map<string, string>
+export type StringStringMap = Map<string, StringMap>
 
 /**
  * Extract variables from theme selectors and return map with selectors and values.
  */
-export async function extractThemeVariables(css: string): Promise<Map<string, StringMap>> {
+export async function extractThemeVariables(css: string): Promise<StringStringMap> {
   const variablesMap = new Map<string, StringMap>()
   const postcssExtractThemeVariable = postcss.plugin(
     'postcss-extract-theme-variable',
@@ -21,7 +22,7 @@ export async function extractThemeVariables(css: string): Promise<Map<string, St
             if (!VARIABLE_DECL_RE.test(node.prop)) {
               throw new TypeError('Theme should contains only variable declarations.')
             }
-            const prevValuesMap: StringMap = variablesMap.get(selector) || new Map()
+            const prevValuesMap = variablesMap.get(selector) || new Map<string, string>()
             prevValuesMap.set(node.prop, node.value)
             variablesMap.set(selector, prevValuesMap)
           }
