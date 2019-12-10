@@ -39,6 +39,7 @@ const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options =
     const processedSelectorsSet = new Set()
 
     root.walkRules((rule) => {
+      // Remove theme selectors cuz css variables not needed in runtime.
       if (THEME_SELECTOR_RE.test(rule.selector)) {
         rule.remove()
         return
