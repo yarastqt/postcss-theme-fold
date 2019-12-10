@@ -91,5 +91,3 @@ const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options =
 })
 
 export default plugin
-// Add fallback for usage in cjs modules.
-module.exports = plugin
