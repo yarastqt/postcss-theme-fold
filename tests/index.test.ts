@@ -57,4 +57,11 @@ describe('postcss-theme-fold', () => {
       '',
     )
   })
+
+  test('should skip variable if then not found in theme', async () => {
+    await run(
+      '.Button { color: var(--color-100500); }',
+      '.Button { color: var(--color-100500); }',
+    )
+  })
 })

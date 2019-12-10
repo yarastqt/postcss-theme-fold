@@ -66,8 +66,11 @@ const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options =
               continue
             }
             const { value, themeSelector } = getVariableMeta(theme, variableMatched[1])
-            node.value = node.value.replace(VARIABLE_FULL_RE, value)
-            themeScopeSelector += themeSelector
+            // When variable not found then skip this rule for processing.
+            if (value !== '') {
+              node.value = node.value.replace(VARIABLE_FULL_RE, value)
+              themeScopeSelector += themeSelector
+            }
           }
         }
 
