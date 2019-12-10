@@ -22,9 +22,7 @@ const run = configureRunner([
 describe('postcss-theme-fold', () => {
   test('should expand variables for two colors', async () => {
     await run(
-      `
-        .Button { color: var(--color-1); }
-      `,
+      '.Button { color: var(--color-1); }',
       `
         .Theme_color_a .Button { color: #fff; }
         .Theme_color_b .Button { color: #000; }
