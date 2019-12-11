@@ -22,16 +22,18 @@ function getVariableMeta(
 }
 
 type ThemeFoldOptions = {
-  // TODO: Use correct type.
-  themes: any
+  /**
+   * List of themes with path to css files.
+   */
+  themes: string[][]
 }
 
 const defaultOptions = {
-  themes: undefined,
+  themes: [],
 }
 
 const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options = defaultOptions) => {
-  if (options.themes === undefined) {
+  if (options.themes.length === 0) {
     throw new Error('Theme options not provided.')
   }
 
