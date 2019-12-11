@@ -26,10 +26,16 @@ type ThemeFoldOptions = {
    * List of themes with path to css files.
    */
   themes: string[][]
+
+  /**
+   * Global helper-selectors.
+   */
+  globalSelectors: string[]
 }
 
 const defaultOptions = {
   themes: [],
+  globalSelectors: [],
 }
 
 const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options = defaultOptions) => {
@@ -76,7 +82,19 @@ const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options =
 
         // Add theme scopes for each selector.
         nextRule.selectors = nextRule.selectors
-          .map((selector) => `${themeScopeSelector} ${selector}`)
+          .map((selector) => {
+            // Only work for single root selector, e.g. `.utilityfocus .Button {...}`.
+            const maybeGlobalSelector = options.globalSelectors.find((globalSelector) => {
+              if (selector.startsWith(globalSelector)) {
+                return globalSelector
+              }
+            })
+            if (maybeGlobalSelector === undefined) {
+              return `${themeScopeSelector} ${selector}`
+            }
+            const nextSelector = selector.replace(maybeGlobalSelector, '')
+            return `${maybeGlobalSelector} ${themeScopeSelector} ${nextSelector}`
+          })
 
         // Prevent duplicate already processed selectors.
         if (!processedSelectorsSet.has(nextRule.selector)) {
