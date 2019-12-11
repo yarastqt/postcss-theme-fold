@@ -4,7 +4,8 @@
   "main": "index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "npm run clean && tsc",
+    "clean": "rm -rf lib",
     "prepublishOnly": "npm run build",
     "test": "jest"
   },
