@@ -2,6 +2,7 @@
   "name": "postcss-theme-fold",
   "version": "0.0.1-alpha.1",
   "main": "index.js",
+  "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
