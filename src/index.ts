@@ -1,4 +1,4 @@
-import postcss, { ChildNode } from 'postcss'
+import { ChildNode, plugin } from 'postcss'
 
 import { getFromCache } from './cache'
 import { THEME_SELECTOR_RE, VARIABLE_USE_RE, VARIABLE_FULL_RE } from './shared'
@@ -30,16 +30,11 @@ type ThemeFoldOptions = {
   /**
    * Global helper-selectors.
    */
-  globalSelectors: string[]
+  globalSelectors?: string[]
 }
 
-const defaultOptions = {
-  themes: [],
-  globalSelectors: [],
-}
-
-const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options = defaultOptions) => {
-  if (options.themes.length === 0) {
+export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as any) => {
+  if (options.themes === undefined) {
     throw new Error('Theme options not provided.')
   }
 
@@ -84,7 +79,7 @@ const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options =
         nextRule.selectors = nextRule.selectors
           .map((selector) => {
             // Only work for single root selector, e.g. `.utilityfocus .Button {...}`.
-            const maybeGlobalSelector = options.globalSelectors.find((globalSelector) => {
+            const maybeGlobalSelector = (options.globalSelectors || []).find((globalSelector) => {
               if (selector.startsWith(globalSelector)) {
                 return globalSelector
               }
@@ -107,5 +102,3 @@ const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options =
     })
   }
 })
-
-export default plugin
