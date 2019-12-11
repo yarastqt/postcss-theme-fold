@@ -1,4 +1,4 @@
-import postcss from 'postcss'
+import postcss, { ChildNode } from 'postcss'
 
 import { getFromCache } from './cache'
 import { THEME_SELECTOR_RE, VARIABLE_USE_RE, VARIABLE_FULL_RE } from './shared'
@@ -56,11 +56,8 @@ const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options =
         let themeScopeSelector = ''
         const nextRule = rule.clone()
 
-        if (nextRule.nodes === undefined) {
-          continue
-        }
-
-        for (const node of nextRule.nodes) {
+        // Cast to `ChildNode` cuz before we already check nodes for undefined.
+        for (const node of (nextRule.nodes as ChildNode[])) {
           if (node.type === 'decl') {
             const variableMatched = node.value.match(VARIABLE_USE_RE)
             if (variableMatched === null) {
