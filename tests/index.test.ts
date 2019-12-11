@@ -16,6 +16,7 @@ const run = configureRunner([
         resolveFixture('components/Theme/Theme_cosmetic_a.css'),
       ],
     ],
+    globalSelectors: ['.utilityfocus'],
   })
 ])
 
@@ -62,6 +63,13 @@ describe('postcss-theme-fold', () => {
     await run(
       '.Button { color: var(--color-100500); }',
       '.Button { color: var(--color-100500); }',
+    )
+  })
+
+  test('should skip variable if then not found in theme', async () => {
+    await run(
+      '.utilityfocus .Button { color: var(--size-1); }',
+      '.utilityfocus .Theme_size_a .Button { color: 10px; }',
     )
   })
 })

@@ -1,4 +1,4 @@
-import postcss from 'postcss'
+import postcss, { ChildNode } from 'postcss'
 
 import { getFromCache } from './cache'
 import { THEME_SELECTOR_RE, VARIABLE_USE_RE, VARIABLE_FULL_RE } from './shared'
@@ -22,16 +22,24 @@ function getVariableMeta(
 }
 
 type ThemeFoldOptions = {
-  // TODO: Use correct type.
-  themes: any
+  /**
+   * List of themes with path to css files.
+   */
+  themes: string[][]
+
+  /**
+   * Global helper-selectors.
+   */
+  globalSelectors: string[]
 }
 
 const defaultOptions = {
-  themes: undefined,
+  themes: [],
+  globalSelectors: [],
 }
 
 const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options = defaultOptions) => {
-  if (options.themes === undefined) {
+  if (options.themes.length === 0) {
     throw new Error('Theme options not provided.')
   }
 
@@ -56,11 +64,8 @@ const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options =
         let themeScopeSelector = ''
         const nextRule = rule.clone()
 
-        if (nextRule.nodes === undefined) {
-          continue
-        }
-
-        for (const node of nextRule.nodes) {
+        // Cast to `ChildNode` cuz before we already check nodes for undefined.
+        for (const node of (nextRule.nodes as ChildNode[])) {
           if (node.type === 'decl') {
             const variableMatched = node.value.match(VARIABLE_USE_RE)
             if (variableMatched === null) {
@@ -77,7 +82,19 @@ const plugin = postcss.plugin<ThemeFoldOptions>('postcss-theme-fold', (options =
 
         // Add theme scopes for each selector.
         nextRule.selectors = nextRule.selectors
-          .map((selector) => `${themeScopeSelector} ${selector}`)
+          .map((selector) => {
+            // Only work for single root selector, e.g. `.utilityfocus .Button {...}`.
+            const maybeGlobalSelector = options.globalSelectors.find((globalSelector) => {
+              if (selector.startsWith(globalSelector)) {
+                return globalSelector
+              }
+            })
+            if (maybeGlobalSelector === undefined) {
+              return `${themeScopeSelector} ${selector}`
+            }
+            const nextSelector = selector.replace(maybeGlobalSelector, '')
+            return `${maybeGlobalSelector} ${themeScopeSelector} ${nextSelector}`
+          })
 
         // Prevent duplicate already processed selectors.
         if (!processedSelectorsSet.has(nextRule.selector)) {
