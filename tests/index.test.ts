@@ -72,4 +72,18 @@ describe('postcss-theme-fold', () => {
       '.utilityfocus .Theme_size_a .Button { color: 10px; }',
     )
   })
+
+  test('should skip selector without variables', async () => {
+    await run(
+      '.Button { color: #fff; }',
+      '.Button { color: #fff; }',
+    )
+  })
+
+  test('should skip selector without variables and duplicate declaration', async () => {
+    await run(
+      '.Button { color: #fff; } .Button { font-size: 10px }',
+      '.Button { color: #fff; } .Button { font-size: 10px }',
+    )
+  })
 })

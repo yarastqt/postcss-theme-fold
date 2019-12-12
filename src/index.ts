@@ -75,6 +75,13 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
           }
         }
 
+        // When `themeScopeSelector` is empty this means selector not have css variables from theme,
+        // and we not cache this in `processedSelectorsSet` cuz him may be declared in other place.
+        if (themeScopeSelector === '') {
+          rules.push(nextRule)
+          return
+        }
+
         // Add theme scopes for each selector.
         nextRule.selectors = nextRule.selectors
           .map((selector) => {
