@@ -70,7 +70,10 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
               // When variable not found then skip this rule for processing.
               if (value !== '') {
                 node.value = node.value.replace(VARIABLE_FULL_RE, value)
-                themeScopeSelector += themeSelector
+                // Prevent duplicate theme selectors.
+                if (!themeScopeSelector.includes(themeSelector)) {
+                  themeScopeSelector += themeSelector
+                }
               }
             }
           }

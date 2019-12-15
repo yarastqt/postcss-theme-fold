@@ -103,4 +103,11 @@ describe('postcss-theme-fold', () => {
       '.Button { color: #fff; } .Button { font-size: 10px }',
     )
   })
+
+  test('should prevent duplicate theme selectors', async () => {
+    await run(
+      '.Button { height: var(--size-1); width: var(--size-2); }',
+      '.Theme_size_a .Button { height: 10px; width: 20px; }',
+    )
+  })
 })
