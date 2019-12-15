@@ -62,15 +62,16 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
         // Cast to `ChildNode` cuz before we already check nodes for undefined.
         for (const node of (nextRule.nodes as ChildNode[])) {
           if (node.type === 'decl') {
-            const variableMatched = node.value.match(VARIABLE_USE_RE)
-            if (variableMatched === null) {
-              continue
-            }
-            const { value, themeSelector } = getVariableMeta(theme, variableMatched[1])
-            // When variable not found then skip this rule for processing.
-            if (value !== '') {
-              node.value = node.value.replace(VARIABLE_FULL_RE, value)
-              themeScopeSelector += themeSelector
+            let executed = null
+
+            // Don't use global flag for `VARIABLE_USE_RE` cuz we next replace first matched variable.
+            while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
+              const { value, themeSelector } = getVariableMeta(theme, executed[1])
+              // When variable not found then skip this rule for processing.
+              if (value !== '') {
+                node.value = node.value.replace(VARIABLE_FULL_RE, value)
+                themeScopeSelector += themeSelector
+              }
             }
           }
         }

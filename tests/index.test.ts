@@ -45,6 +45,16 @@ describe('postcss-theme-fold', () => {
     )
   })
 
+  test('should replace multiply variables', async () => {
+    await run(
+      '.Button { border: var(--size-1) solid var(--color-1); }',
+      `
+        .Theme_size_a.Theme_color_a .Button { border: 10px solid #fff; }
+        .Theme_size_a.Theme_color_b .Button { border: 10px solid #000; }
+      `,
+    )
+  })
+
   test('should replace variable from calc function', async () => {
     await run(
       '.Button { width: calc(var(--size-1) / 2); }',
