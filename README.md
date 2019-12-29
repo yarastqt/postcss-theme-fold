@@ -1,4 +1,6 @@
-# postcss-theme-fold
+# postcss-theme-fold [<img src="https://postcss.github.io/postcss/logo.svg" alt="PostCSS" width="90" height="90" align="right">][postcss]
+
+[![NPM Version][npm-img]][npm-url]
 
 ## Install
 
@@ -63,3 +65,8 @@ postcss([
 ```
 
 ## Know issues
+
+[npm-img]: https://img.shields.io/npm/v/postcss-theme-fold.svg
+[npm-url]: https://www.npmjs.com/package/postcss-theme-fold
+
+[PostCSS]: https://github.com/postcss/postcss
