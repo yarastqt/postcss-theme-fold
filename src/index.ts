@@ -64,8 +64,10 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
           if (node.type === 'decl') {
             let executed = null
 
-            // Don't use global flag for `VARIABLE_USE_RE` cuz we next replace first matched variable.
             while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
+              // Hack for capture overlapping values.
+              VARIABLE_USE_RE.lastIndex--;
+
               const { value, themeSelector } = getVariableMeta(theme, executed[1])
               // When variable not found then skip this rule for processing.
               if (value !== '') {

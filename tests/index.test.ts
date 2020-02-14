@@ -32,7 +32,7 @@ describe('postcss-theme-fold', () => {
   })
 
   test('should mix theme selectors for a few variables', async () => {
-    run(
+    await run(
       '.Button { font-size: var(--size-1); border-radius: var(--cosmetic-1) }',
       '.Theme_size_a.Theme_cosmetic_a .Button { font-size: 10px; border-radius: 2px }',
     )
