@@ -7,11 +7,12 @@ import { resolveFixture } from './__internal/fixture-resolver'
 const readFileAsync = promisify(readFile)
 
 describe('extract-theme-variables', () => {
-  test('should return themes map with variables', async (done) => {
+  test('should return themes map with expanded variables', async (done) => {
     const content = await readFileAsync(resolveFixture('components/Theme/Theme_color_a.css'), 'utf-8')
     const variablesMap = await extractThemeVariables(content)
     const expected = new Map([
       ['.Theme_color_a', new Map([
+        ['--color-0', '#fff'],
         ['--color-1', '#fff'],
         ['--color-2', '#000'],
       ])],
