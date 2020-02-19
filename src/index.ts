@@ -63,12 +63,18 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
         for (const node of (nextRule.nodes as ChildNode[])) {
           if (node.type === 'decl') {
             let executed = null
+            const variables = []
 
             while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
-              // Hack for capture overlapping values.
-              VARIABLE_USE_RE.lastIndex--;
+              // Avoid infinite loops with zero-width matches.
+              if (executed.index === VARIABLE_USE_RE.lastIndex) {
+                VARIABLE_USE_RE.lastIndex++;
+              }
+              variables.push(executed[1])
+            }
 
-              const { value, themeSelector } = getVariableMeta(theme, executed[1])
+            for (const variable of variables) {
+              const { value, themeSelector } = getVariableMeta(theme, variable)
               // When variable not found then skip this rule for processing.
               if (value !== '') {
                 node.value = node.value.replace(VARIABLE_FULL_RE, value)
