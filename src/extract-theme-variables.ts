@@ -1,6 +1,6 @@
 import postcss from 'postcss'
 
-import { THEME_SELECTOR_RE, VARIABLE_DECL_RE } from './shared'
+import { THEME_SELECTOR_RE, VARIABLE_DECL_RE, VARIABLE_FULL_RE } from './shared'
 
 export type StringMap = Map<string, string>
 export type StringStringMap = Map<string, StringMap>
@@ -31,7 +31,22 @@ export async function extractThemeVariables(css: string): Promise<StringStringMa
     },
   )
 
+  const processLocalVariables = () => {
+    for (const [, variables] of variablesMap) {
+      for (const [variablleName, variableValue] of variables) {
+        const matched = variableValue.match(VARIABLE_FULL_RE)
+        if (matched !== null) {
+          const processedVariable = variables.get(matched[1])
+          if (processedVariable !== undefined) {
+            variables.set(variablleName, processedVariable)
+          }
+        }
+      }
+    }
+  }
+
   return postcss([postcssExtractThemeVariable()])
     .process(css, { from: '' })
+    .then(processLocalVariables)
     .then(() => variablesMap)
 }
