@@ -74,7 +74,7 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
             while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
               // Avoid infinite loops with zero-width matches.
               if (executed.index === VARIABLE_USE_RE.lastIndex) {
-                VARIABLE_USE_RE.lastIndex++;
+                VARIABLE_USE_RE.lastIndex++
               }
               variables.push(executed[1])
             }
