@@ -52,14 +52,24 @@ postcss([
 .Button {
   color: var(--color);
   font-size: var(--size);
+  box-sizing: border-box;
 }
 ```
 
 #### output:
 
+Split rules from other chunks of theme to extra selectors for order to reduce the specificity.
+
 ```css
-.Theme_color_default.Theme_size_default .Button {
+.Button {
+  box-sizing: border-box;
+}
+
+.Theme_color_default .Button {
   color: #fff;
+}
+
+.Theme_size_default .Button {
   font-size: 10px;
 }
 ```
