@@ -34,7 +34,10 @@ describe('postcss-theme-fold', () => {
   test('should mix theme selectors for a few variables', async () => {
     await run(
       '.Button { font-size: var(--size-1); border-radius: var(--cosmetic-1) }',
-      '.Theme_size_a.Theme_cosmetic_a .Button { font-size: 10px; border-radius: 2px }',
+      `
+        .Theme_size_a .Button { font-size: 10px }
+        .Theme_cosmetic_a .Button { border-radius: 2px }
+      `,
     )
   })
 
@@ -108,6 +111,17 @@ describe('postcss-theme-fold', () => {
     await run(
       '.Button { height: var(--size-1); width: var(--size-2); }',
       '.Theme_size_a .Button { height: 10px; width: 20px; }',
+    )
+  })
+
+  test('should move expanded rules to extra selector', async () => {
+    await run(
+      '.Button { color: var(--color-1); box-sizing: border-box; }',
+      `
+        .Button { box-sizing: border-box; }
+        .Theme_color_a .Button { color: #fff; }
+        .Theme_color_b .Button { color: #000; }
+      `,
     )
   })
 })
