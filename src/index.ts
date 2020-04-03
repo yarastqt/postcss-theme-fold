@@ -4,6 +4,7 @@ import { getFromCache } from './cache'
 import { THEME_SELECTOR_RE, VARIABLE_USE_RE, VARIABLE_FULL_RE } from './shared'
 import { StringStringMap } from './extract-theme-variables'
 import { extractVariablesFromThemes } from './extract-variables-from-themes'
+import { uniq } from './uniq'
 
 function getVariableMeta(
   themeMap: StringStringMap,
@@ -20,6 +21,10 @@ function getVariableMeta(
 
   return variableMeta
 }
+
+type RuleProps = { [key in string]: { selectors: string[], nodes: ChildNode[] } }
+type AnyDict = { [key in string]: any }
+type EnhancedChildNode = ChildNode & { processed: boolean }
 
 type ThemeFoldOptions = {
   /**
@@ -56,11 +61,12 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
       const rules = []
 
       for (const theme of themesSet) {
-        let themeScopeSelector = ''
         const nextRule = rule.clone()
+        const processedProps: RuleProps = {}
+        const themeSelectors: AnyDict = {}
 
-        // Cast to `ChildNode` cuz before we already check nodes for undefined.
-        for (const node of (nextRule.nodes as ChildNode[])) {
+        // Cast to `EnhancedChildNode` cuz before we already check nodes for undefined.
+        for (const node of (nextRule.nodes as EnhancedChildNode[])) {
           if (node.type === 'decl') {
             let executed = null
             const variables = []
@@ -68,7 +74,7 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
             while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
               // Avoid infinite loops with zero-width matches.
               if (executed.index === VARIABLE_USE_RE.lastIndex) {
-                VARIABLE_USE_RE.lastIndex++;
+                VARIABLE_USE_RE.lastIndex++
               }
               variables.push(executed[1])
             }
@@ -77,43 +83,70 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
               const { value, themeSelector } = getVariableMeta(theme, variable)
               // When variable not found then skip this rule for processing.
               if (value !== '') {
+                // Mark node as processed and remove them later.
+                node.processed = true
                 node.value = node.value.replace(VARIABLE_FULL_RE, value)
-                // Prevent duplicate theme selectors.
-                if (!themeScopeSelector.includes(themeSelector)) {
-                  themeScopeSelector += themeSelector
-                }
+                const nextProp = processedProps[node.prop] || { selectors: [], nodes: [] }
+                nextProp.selectors.push(themeSelector)
+                nextProp.nodes.push(node)
+                processedProps[node.prop] = nextProp
               }
             }
           }
         }
 
-        // When `themeScopeSelector` is empty this means selector not have css variables from theme,
+        // When `processedProps` is empty this means rule not have css variables from theme,
         // and we not cache this in `processedSelectorsSet` cuz him may be declared in other place.
-        if (themeScopeSelector === '') {
+        if (Object.keys(processedProps).length === 0) {
           rules.push(nextRule)
           return
         }
 
-        // Add theme scopes for each selector.
-        nextRule.selectors = nextRule.selectors
-          .map((selector) => {
-            // Only work for single root selector, e.g. `.utilityfocus .Button {...}`.
-            const maybeGlobalSelector = (options.globalSelectors || []).find((globalSelector) => {
-              if (selector.startsWith(globalSelector)) {
-                return globalSelector
-              }
-            })
-            if (maybeGlobalSelector === undefined) {
-              return `${themeScopeSelector} ${selector}`
-            }
-            const nextSelector = selector.replace(maybeGlobalSelector, '')
-            return `${maybeGlobalSelector} ${themeScopeSelector} ${nextSelector}`
-          })
-
         // Prevent duplicate already processed selectors.
         if (!processedSelectorsSet.has(nextRule.selector)) {
           processedSelectorsSet.add(nextRule.selector)
-          rules.push(nextRule)
+          // Remove already processed nodes from base rule.
+          nextRule.nodes = (nextRule.nodes as EnhancedChildNode[]).filter((node) => !node.processed)
+          if (nextRule.nodes.length > 0) {
+            // Push nextRule before forkedRule,
+            // cuz them maybe contains not processed selectors.
+            rules.push(nextRule)
+          }
+        }
+
+        // Create shape with unique theme selectors and nodes.
+        for (const key in processedProps) {
+          const selector = uniq(processedProps[key].selectors).join('')
+          const nodes = uniq(processedProps[key].nodes)
+          if (themeSelectors[selector] === undefined) {
+            themeSelectors[selector] = []
+          }
+          themeSelectors[selector].push(...nodes)
+        }
+
+        for (const themeSelector in themeSelectors) {
+          const forkedRule = rule.clone()
+          // Add extra theme selectors for forked rule.
+          forkedRule.selectors = forkedRule.selectors
+            .map((selector) => {
+              // Only work for single root selector, e.g. `.utilityfocus .Button {...}`.
+              const maybeGlobalSelector = (options.globalSelectors || []).find((globalSelector) => {
+                if (selector.startsWith(globalSelector)) {
+                  return globalSelector
+                }
+              })
+              if (maybeGlobalSelector === undefined) {
+                return `${themeSelector} ${selector}`
+              }
+              const nextSelector = selector.replace(maybeGlobalSelector, '')
+              return `${maybeGlobalSelector} ${themeSelector} ${nextSelector}`
+            })
+          forkedRule.nodes = themeSelectors[themeSelector]
+          // Prevent duplicate already processed selectors.
+          if (!processedSelectorsSet.has(forkedRule.selector)) {
+            processedSelectorsSet.add(forkedRule.selector)
+            rules.push(forkedRule)
+          }
         }
       }
 
