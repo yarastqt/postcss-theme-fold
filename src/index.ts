@@ -131,7 +131,8 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
             .map((selector) => {
               // Only work for single root selector, e.g. `.utilityfocus .Button {...}`.
               const maybeGlobalSelector = (options.globalSelectors || []).find((globalSelector) => {
-                if (selector.startsWith(globalSelector)) {
+                const [firstSelector] = selector.split(' ')
+                if (firstSelector === globalSelector) {
                   return globalSelector
                 }
               })

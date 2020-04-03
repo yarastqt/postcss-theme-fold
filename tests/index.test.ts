@@ -88,8 +88,8 @@ describe('postcss-theme-fold', () => {
 
   test('should skip variable if then not found in theme', async () => {
     await run(
-      '.utilityfocus .Button { color: var(--size-1); }',
-      '.utilityfocus .Theme_size_a .Button { color: 10px; }',
+      '.Button { color: var(--size-1); }',
+      '.Theme_size_a .Button { color: 10px; }',
     )
   })
 
@@ -122,6 +122,17 @@ describe('postcss-theme-fold', () => {
         .Theme_color_a .Button { color: #fff; }
         .Theme_color_b .Button { color: #000; }
       `,
+    )
+  })
+
+  test('should process global selector', async () => {
+    await run(
+      '.utilityfocus .Button { color: var(--size-1); }',
+      '.utilityfocus .Theme_size_a .Button { color: 10px; }',
+    )
+    await run(
+      '.utilityfocus-fake .Button { color: var(--size-1); }',
+      '.Theme_size_a .utilityfocus-fake .Button { color: 10px; }',
     )
   })
 })
