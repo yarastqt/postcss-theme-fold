@@ -17,6 +17,7 @@ const themeFold = require('postcss-theme-fold')
 
 postcss([
   themeFold({
+    mode: 'multi-themes',
     themes: [
       [
         resolve('src/components/Theme/_size/Theme_color_default.css'),
@@ -27,11 +28,23 @@ postcss([
         resolve('src/components/Theme/_size/Theme_size_default.css'),
       ],
     ],
+    globalSelectors: ['.utilityfocus'],
   }),
 ])
   .process(css, { from: cssPath })
   .then(result => result.css)
 ```
+
+### Options
+
+* **themes (string[][])**
+  List of themes with path to css files.
+* **globalSelectors (string[])**
+  Global helper-selectors.
+* **mode ('single-theme' | 'multi-themes')**
+  Method of theme folding, by default choice mode in relation from themes size.
+  `single-theme` — don't accumulate cascade with theme selectors.
+  `multi-themes` — accumulate cascade with theme selectors.
 
 ### Example content
 
