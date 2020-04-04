@@ -36,11 +36,33 @@ type ThemeFoldOptions = {
    * Global helper-selectors.
    */
   globalSelectors?: string[]
+
+  /**
+   * Method of theme folding, by default choice mode in relation from themes size.
+   *
+   * single-theme — don't accumulate cascade with theme selectors.
+   * multi-themes — accumulate cascade with theme selectors.
+   */
+  mode?: 'single-theme' | 'multi-themes'
 }
 
-export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as any) => {
-  if (options.themes === undefined) {
+export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { themes: [], globalSelectors: [] }) => {
+  if (options.themes.length === 0) {
     throw new Error('Theme options not provided.')
+  }
+
+  if (options.mode === undefined) {
+    if (options.themes.length === 1) {
+      options.mode = 'single-theme'
+    } else {
+      options.mode = 'multi-themes'
+    }
+  }
+
+  if (options.mode === 'single-theme') {
+    if (options.themes.length > 2) {
+      throw new Error('For single mode themes should contains one theme.')
+    }
   }
 
   return async (root) => {
@@ -87,7 +109,10 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = {} as a
                 node.processed = true
                 node.value = node.value.replace(VARIABLE_FULL_RE, value)
                 const nextProp = processedProps[node.prop] || { selectors: [], nodes: [] }
-                nextProp.selectors.push(themeSelector)
+                // Accumulate theme selectors only for multi themes.
+                if (options.mode === 'multi-themes') {
+                  nextProp.selectors.push(themeSelector)
+                }
                 nextProp.nodes.push(node)
                 processedProps[node.prop] = nextProp
               }
