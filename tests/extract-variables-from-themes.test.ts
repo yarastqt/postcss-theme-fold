@@ -11,6 +11,9 @@ describe('extract-variables-from-themes', () => {
         ['.Theme_color_b', new Map([
           ['--color-1', '#000'],
           ['--color-2', 'rgb(38, 38, 38)'],
+          ['--color-3', '#fff'],
+          ['--color-4', '#ccc'],
+          ['--color-5', '#eee'],
         ])],
         ['.Theme_cosmetic_a', new Map([
           ['--cosmetic-1', '2px'],

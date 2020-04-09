@@ -1,7 +1,13 @@
 $color-base: #000;
 $color-bg: color($color-base l(+15%));
+$color-border: #fff;
+$color-inverse: #ccc;
+$color-control: #eee;
 
 .Theme_color_b {
   --color-1: $color-base;
   --color-2: $color-bg;
+  --color-3: $color-border;
+  --color-4: $color-inverse;
+  --color-5: $color-control;
 }

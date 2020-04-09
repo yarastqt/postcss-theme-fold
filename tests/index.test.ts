@@ -15,6 +15,17 @@ const themeB = [
 ]
 
 describe('postcss-theme-fold', () => {
+  let errorLog:() => void;
+
+  beforeAll(() => {
+    errorLog =  console.error;
+    console.error = jest.fn().mockImplementation(() => {});
+  })
+
+  afterAll(() => {
+    console.error = errorLog;
+  })
+
   test('should throw error when themes are empty', async () => {
     try {
       configureRunner([
@@ -146,6 +157,42 @@ describe('postcss-theme-fold', () => {
         '.Button { color: var(--color-1); box-sizing: border-box; }',
         `
           .Button { box-sizing: border-box; }
+          .Theme_color_a .Button { color: #fff; }
+          .Theme_color_b .Button { color: #000; }
+        `,
+      )
+    })
+
+    test('should not generate css-rules if all variables are missing in theme', async () => {
+      await run(
+        `.Textinput-Box {
+          border-color: var(--color-3);
+          background-color: var(--color-4);
+        }`,
+        `
+          .Theme_color_b .Textinput-Box {
+            border-color: #fff;
+            background-color: #ccc;
+          }
+        `,
+      )
+    })
+
+    test('should delete expanded rule even if it is not present in some themes', async () => {
+      await run(
+        '.Button { color: var(--color-1); background: var(--color-3); }',
+        `
+          .Theme_color_a .Button { color: #fff; }
+          .Theme_color_b .Button { color: #000; background: #fff; }
+        `,
+      )
+    })
+
+    test('should leave uknown (for any theme) variables as is', async () => {
+      await run(
+        '.Button { color: var(--color-1); color: var(--color-8); box-sizing: border-box; }',
+        `
+          .Button { color: var(--color-8); box-sizing: border-box; }
           .Theme_color_a .Button { color: #fff; }
           .Theme_color_b .Button { color: #000; }
         `,
