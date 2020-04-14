@@ -88,7 +88,7 @@ Split rules from other chunks of theme to extra selectors for order to reduce th
 
 [npm-img]: https://img.shields.io/npm/v/postcss-theme-fold.svg
 [npm-url]: https://www.npmjs.com/package/postcss-theme-fold
-[github-ci]: https://github.com/yarastqt/postcss-theme-fold/workflows/test/badge.svg?branch=master
+[github-ci]: https://github.com/yarastqt/postcss-theme-fold/workflows/ci/badge.svg?branch=master
 
 [whitepaper]: http://whitepaper.tools
 [PostCSS]: https://github.com/postcss/postcss
