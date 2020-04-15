@@ -24,7 +24,7 @@ function getVariableMeta(
 
 type RuleProps = { [key in string]: { selectors: string[], nodes: ChildNode[] } }
 type AnyDict = { [key in string]: any }
-type EnhancedChildNode = ChildNode & { processed: boolean }
+type EnhancedChildNode = ChildNode & { processed: boolean, broken: boolean }
 
 type ThemeFoldOptions = {
   /**
@@ -67,6 +67,14 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
 
   return async (root) => {
     const themesSet = await getFromCache(() => extractVariablesFromThemes(options.themes))
+    const uniqVariables = new Set([...themesSet].reduce<string[]>((res, themeMap) => {
+      for (const [, variablesMap] of themeMap) {
+        res = res.concat([...variablesMap.keys()])
+      }
+
+      return res;
+    }, []));
+
     const processedSelectorsSet = new Set()
 
     root.walkRules((rule) => {
@@ -86,6 +94,7 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
         const nextRule = rule.clone()
         const processedProps: RuleProps = {}
         const themeSelectors: AnyDict = {}
+        const brokenNodes = []
 
         // Cast to `EnhancedChildNode` cuz before we already check nodes for undefined.
         for (const node of (nextRule.nodes as EnhancedChildNode[])) {
@@ -102,11 +111,17 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
             }
 
             for (const variable of variables) {
+              // Variable absence in uniqVariables means that
+              // it's not present in any theme.
+              node.processed = uniqVariables.has(variable)
+
+              if (!node.processed) {
+                continue
+              }
               const { value, themeSelector } = getVariableMeta(theme, variable)
               // When variable not found then skip this rule for processing.
-              if (value !== '') {
+              if (node.value && value !== '') {
                 // Mark node as processed and remove them later.
-                node.processed = true
                 node.value = node.value.replace(VARIABLE_FULL_RE, value)
                 const nextProp = processedProps[node.prop] || { selectors: [], nodes: [] }
                 // Accumulate theme selectors only for multi themes.
@@ -115,6 +130,12 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
                 }
                 nextProp.nodes.push(node)
                 processedProps[node.prop] = nextProp
+              } else {
+                  // If variable is absent in current theme,
+                  // it can pe present in another, however,  but we have to warn about  it.
+                  node.broken = true;
+                  brokenNodes.push(node);
+                  console.error(`❗️❗️❗️ Missing value for ${variable} for ${[...theme.keys()].join(', ')}. Deleting css rule...`)
               }
             }
           }
@@ -122,16 +143,27 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
 
         // When `processedProps` is empty this means rule not have css variables from theme,
         // and we not cache this in `processedSelectorsSet` cuz him may be declared in other place.
+        // `processedProps` absence can possibly mean that variable value is missing only in
+        // one particular theme, not it every theme.
         if (Object.keys(processedProps).length === 0) {
-          rules.push(nextRule)
-          return
+          // Also that can mean that we met some rule without variables -
+          // rules like this do not have broken or processed nodes, so we can
+          // break to prevert double adding.
+          if (!brokenNodes.length) {
+            rules.push(nextRule);
+            break;
+          } else {
+            // ...and continue for rules, which have some chance to be
+            // processed in another themes (with broken nodes).
+            continue;
+          }
         }
 
         // Prevent duplicate already processed selectors.
         if (!processedSelectorsSet.has(nextRule.selector)) {
           processedSelectorsSet.add(nextRule.selector)
-          // Remove already processed nodes from base rule.
-          nextRule.nodes = (nextRule.nodes as EnhancedChildNode[]).filter((node) => !node.processed)
+          // Remove already processed and broken (without value) nodes from base rule.
+          nextRule.nodes = (nextRule.nodes as EnhancedChildNode[]).filter((node) => !node.processed && !node.broken)
           if (nextRule.nodes.length > 0) {
             // Push nextRule before forkedRule,
             // cuz them maybe contains not processed selectors.
