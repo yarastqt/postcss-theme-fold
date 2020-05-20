@@ -7,7 +7,7 @@ function stripIndents(content: string) {
 export function configureRunner(plugins: AcceptedPlugin[]) {
   return (input: string, output: string) => {
     return postcss(plugins)
-      .process(input, { from: '' })
+      .process(input, { from: 'source.css' })
       .then((result) => {
         expect(stripIndents(result.css)).toEqual(stripIndents(output))
         expect(result.warnings()).toHaveLength(0)
