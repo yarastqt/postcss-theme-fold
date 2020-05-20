@@ -226,4 +226,53 @@ describe('postcss-theme-fold', () => {
       )
     })
   })
+
+  describe('shouldProcessVariable', () => {
+    test('should skip process for all variables', async () => {
+      const run = configureRunner([
+        postcssThemeFold({
+          themes: [themeA],
+          shouldProcessVariable: (node) => {
+            if (
+              node.source &&
+              node.source.input.file &&
+              node.source.input.file.endsWith('source.css')
+            ) {
+              return true
+            }
+            return false
+          }
+        })
+      ])
+
+      await run(
+        '.Button { color: var(--color-1); width: var(--size-1); }',
+        '.Button { color: var(--color-1); width: var(--size-1); }',
+      )
+    })
+
+    test  ('should skip process for color variable', async () => {
+      const run = configureRunner([
+        postcssThemeFold({
+          themes: [themeA],
+          shouldProcessVariable: (node) => {
+            if (
+              node.source &&
+              node.source.input.file &&
+              node.source.input.file.endsWith('source.css') &&
+              node.value === 'var(--color-1)'
+            ) {
+              return true
+            }
+            return false
+          }
+        })
+      ])
+
+      await run(
+        '.Button { color: var(--color-1); width: var(--size-1); }',
+        '.Button { color: var(--color-1); } .Button { width: 10px; }',
+      )
+    })
+  })
 })

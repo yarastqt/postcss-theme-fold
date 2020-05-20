@@ -1,4 +1,4 @@
-import { ChildNode, plugin } from 'postcss'
+import { ChildNode, Declaration, plugin } from 'postcss'
 
 import { getFromCache } from './cache'
 import { THEME_SELECTOR_RE, VARIABLE_USE_RE, VARIABLE_FULL_RE } from './shared'
@@ -44,6 +44,11 @@ type ThemeFoldOptions = {
    * multi-themes — accumulate cascade with theme selectors.
    */
   mode?: 'single-theme' | 'multi-themes'
+
+  /**
+   * Predicate for processing each nodes.
+   */
+  shouldProcessVariable?: (declaration: Declaration) => boolean
 }
 
 export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { themes: [], globalSelectors: [] }) => {
@@ -99,6 +104,10 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
         // Cast to `EnhancedChildNode` cuz before we already check nodes for undefined.
         for (const node of (nextRule.nodes as EnhancedChildNode[])) {
           if (node.type === 'decl') {
+            if (options.shouldProcessVariable !== undefined && options.shouldProcessVariable(node)) {
+              continue
+            }
+
             let executed = null
             const variables = []
 
