@@ -238,9 +238,9 @@ describe('postcss-theme-fold', () => {
               node.source.input.file &&
               node.source.input.file.endsWith('source.css')
             ) {
-              return true
+              return false
             }
-            return false
+            return true
           }
         })
       ])
@@ -262,9 +262,9 @@ describe('postcss-theme-fold', () => {
               node.source.input.file.endsWith('source.css') &&
               node.value === 'var(--color-1)'
             ) {
-              return true
+              return false
             }
-            return false
+            return true
           }
         })
       ])
