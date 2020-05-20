@@ -104,8 +104,11 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
         // Cast to `EnhancedChildNode` cuz before we already check nodes for undefined.
         for (const node of (nextRule.nodes as EnhancedChildNode[])) {
           if (node.type === 'decl') {
-            if (options.shouldProcessVariable !== undefined && options.shouldProcessVariable(node)) {
-              continue
+            if (
+              options.shouldProcessVariable !== undefined &&
+              options.shouldProcessVariable(node) === false
+            ) {
+              continue;
             }
 
             let executed = null
