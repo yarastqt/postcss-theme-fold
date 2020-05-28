@@ -23,7 +23,6 @@ describe('postcss-theme-fold', () => {
   let errorLog:() => void;
 
   beforeAll(() => {
-
     errorLog =  console.error;
     console.error = jest.fn().mockImplementation(() => {});
   })
@@ -230,6 +229,13 @@ describe('postcss-theme-fold', () => {
         '.Button { color: var(--color-1); }',
         '.Button { color: #fff; }',
       )
+    })
+
+    test('should expand override selectors', async () => {
+      await run(
+        '.Button { color: var(--color-0);} @media and screen (mix-width: 500px) { .Button { padding: var(--cosmetic-1);}}',
+        '.Button { color: #fff;} @media and screen (mix-width: 500px) { .Button { padding: 2px;}}'
+    )
     })
   })
 
