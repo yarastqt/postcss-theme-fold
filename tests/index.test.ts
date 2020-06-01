@@ -1,4 +1,9 @@
 import postcssThemeFold from '../src/index'
+
+jest.mock('../src/cache', () => ({
+  getFromCache: (a: Function) => (a())
+}))
+
 import { configureRunner } from './__internal/runner'
 import { resolveFixture } from './__internal/fixture-resolver'
 
@@ -224,6 +229,13 @@ describe('postcss-theme-fold', () => {
         '.Button { color: var(--color-1); }',
         '.Button { color: #fff; }',
       )
+    })
+
+    test('should expand override selectors', async () => {
+      await run(
+        '.Button { color: var(--color-0);} @media and screen (mix-width: 500px) { .Button { padding: var(--cosmetic-1);}}',
+        '.Button { color: #fff;} @media and screen (mix-width: 500px) { .Button { padding: 2px;}}'
+    )
     })
   })
 

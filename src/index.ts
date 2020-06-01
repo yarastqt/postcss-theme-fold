@@ -5,6 +5,7 @@ import { THEME_SELECTOR_RE, VARIABLE_USE_RE, VARIABLE_FULL_RE } from './shared'
 import { StringStringMap } from './extract-theme-variables'
 import { extractVariablesFromThemes } from './extract-variables-from-themes'
 import { uniq } from './uniq'
+import { addValueToMap, removeNodesFromMap } from './processed-map'
 
 function getVariableMeta(
   themeMap: StringStringMap,
@@ -81,6 +82,7 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
     }, []));
 
     const processedSelectorsSet = new Set()
+    const processedPropsMap = new Map()
 
     root.walkRules((rule) => {
       // Remove theme selectors cuz css variables not needed in runtime.
@@ -142,6 +144,9 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
                 }
                 nextProp.nodes.push(node)
                 processedProps[node.prop] = nextProp
+                if (node.parent.type === 'rule') {
+                  addValueToMap(processedPropsMap, node.parent.selector.trim(), { value: node.value, prop: node.prop });
+                }
               } else {
                   // If variable is absent in current theme,
                   // it can pe present in another, however,  but we have to warn about  it.
@@ -213,7 +218,8 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
             })
           forkedRule.nodes = themeSelectors[themeSelector]
           // Prevent duplicate already processed selectors.
-          if (!processedSelectorsSet.has(forkedRule.selector)) {
+          if (!processedSelectorsSet.has(forkedRule.selector) || processedPropsMap.get(forkedRule.selector.trim())) {
+            removeNodesFromMap(processedPropsMap, forkedRule.nodes || []);
             processedSelectorsSet.add(forkedRule.selector)
             rules.push(forkedRule)
           }
