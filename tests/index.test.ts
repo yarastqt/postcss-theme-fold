@@ -214,6 +214,24 @@ describe('postcss-theme-fold', () => {
         '.Theme_size_a .utilityfocus-fake .Button { color: 10px; }',
       )
     })
+
+    test('should expand override selectors', async () => {
+      await run(
+        `.Button { color: var(--color-1);}
+          @media and screen (mix-width: 500px) {
+            .Button { color: var(--color-2);}
+          }
+        `,
+        `
+          .Theme_color_a .Button { color: #fff;}
+          .Theme_color_b .Button { color: #000;}
+          @media and screen (mix-width: 500px) {
+            .Theme_color_a .Button { color: #000;}
+            .Theme_color_b .Button { color: rgb(38, 38, 38);}
+          }
+        `
+    )
+    })
   })
 
   describe('single-theme', () => {
@@ -263,7 +281,7 @@ describe('postcss-theme-fold', () => {
       )
     })
 
-    test  ('should skip process for color variable', async () => {
+    test('should skip process for color variable', async () => {
       const run = configureRunner([
         postcssThemeFold({
           themes: [themeA],

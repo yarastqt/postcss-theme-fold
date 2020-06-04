@@ -5,7 +5,7 @@ import { THEME_SELECTOR_RE, VARIABLE_USE_RE, VARIABLE_FULL_RE } from './shared'
 import { StringStringMap } from './extract-theme-variables'
 import { extractVariablesFromThemes } from './extract-variables-from-themes'
 import { uniq } from './uniq'
-import { addValueToMap, removeNodesFromMap } from './processed-map'
+import { addValueToMap, checkNodesProcessed, hasUnprocessedNodes } from './processed-map'
 
 function getVariableMeta(
   themeMap: StringStringMap,
@@ -145,7 +145,8 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
                 nextProp.nodes.push(node)
                 processedProps[node.prop] = nextProp
                 if (node.parent.type === 'rule') {
-                  addValueToMap(processedPropsMap, node.parent.selector.trim(), { value: node.value, prop: node.prop });
+                  const rootSelector = options.mode === 'multi-themes' ? themeSelector : node.parent.selector.trim();
+                  addValueToMap(processedPropsMap, rootSelector, { selector: node.parent.selector.trim(), value: node.value, prop: node.prop });
                 }
               } else {
                   // If variable is absent in current theme,
@@ -218,8 +219,9 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
             })
           forkedRule.nodes = themeSelectors[themeSelector]
           // Prevent duplicate already processed selectors.
-          if (!processedSelectorsSet.has(forkedRule.selector) || processedPropsMap.get(forkedRule.selector.trim())) {
-            removeNodesFromMap(processedPropsMap, forkedRule.nodes || []);
+          const rootSelector = options.mode === 'multi-themes' ? themeSelector : forkedRule.selector.trim();
+          if (!processedSelectorsSet.has(forkedRule.selector) || hasUnprocessedNodes(processedPropsMap, rootSelector)) {
+            checkNodesProcessed(processedPropsMap, forkedRule.nodes || [], themeSelector);
             processedSelectorsSet.add(forkedRule.selector)
             rules.push(forkedRule)
           }
