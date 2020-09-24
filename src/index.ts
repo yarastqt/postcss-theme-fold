@@ -50,6 +50,11 @@ type ThemeFoldOptions = {
    * Predicate for processing each nodes.
    */
   shouldProcessVariable?: (declaration: Declaration) => boolean
+
+  /**
+   * Disable warnings
+   */
+  disableWarnings?: boolean;
 }
 
 export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { themes: [], globalSelectors: [] }) => {
@@ -153,7 +158,9 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
                   // it can pe present in another, however,  but we have to warn about  it.
                   node.broken = true;
                   brokenNodes.push(node);
-                  console.error(`❗️❗️❗️ Missing value for ${variable} for ${[...theme.keys()].join(', ')}. Deleting css rule...`)
+                  if (!options.disableWarnings) {
+                    console.error(`❗️❗️❗️ Missing value for ${variable} for ${[...theme.keys()].join(', ')}. Deleting css rule...`)
+                  }
               }
             }
           }
