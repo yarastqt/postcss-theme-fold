@@ -7,6 +7,12 @@ jest.mock('../src/cache', () => ({
 import { configureRunner } from './__internal/runner'
 import { resolveFixture } from './__internal/fixture-resolver'
 
+const rootTheme = [
+  resolveFixture('components/Theme/Theme_root_color_a.css'),
+  resolveFixture('components/Theme/Theme_root_size_a.css'),
+  resolveFixture('components/Theme/Theme_root_cosmetic_a.css'),
+]
+
 const themeA = [
   resolveFixture('components/Theme/Theme_color_a.css'),
   resolveFixture('components/Theme/Theme_size_a.css'),
@@ -238,6 +244,29 @@ describe('postcss-theme-fold', () => {
     const run = configureRunner([
       postcssThemeFold({
         themes: [themeA],
+        globalSelectors: ['.utilityfocus'],
+      })
+    ])
+
+    test('should expand variables without theme selector', async () => {
+      await run(
+        '.Button { color: var(--color-1); }',
+        '.Button { color: #fff; }',
+      )
+    })
+
+    test('should expand override selectors', async () => {
+      await run(
+        '.Button { color: var(--color-0);} @media and screen (mix-width: 500px) { .Button { padding: var(--cosmetic-1);}}',
+        '.Button { color: #fff;} @media and screen (mix-width: 500px) { .Button { padding: 2px;}}'
+    )
+    })
+  })
+
+  describe('single-theme with :root selector', () => {
+    const run = configureRunner([
+      postcssThemeFold({
+        themes: [rootTheme],
         globalSelectors: ['.utilityfocus'],
       })
     ])
