@@ -1,6 +1,6 @@
 {
   "name": "postcss-theme-fold",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "main": "index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
