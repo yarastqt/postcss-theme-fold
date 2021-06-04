@@ -1,4 +1,4 @@
-import { ChildNode, Declaration, plugin } from 'postcss'
+import { ChildNode, Declaration, plugin, comment } from 'postcss'
 
 import { getFromCache } from './cache'
 import { THEME_SELECTOR_RE, VARIABLE_USE_RE, VARIABLE_FULL_RE } from './shared'
@@ -55,6 +55,11 @@ type ThemeFoldOptions = {
    * Disable warnings
    */
   disableWarnings?: boolean;
+
+  /**
+   * Show original variables as comment
+   */
+  debug?: boolean
 }
 
 export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { themes: [], globalSelectors: [] }) => {
@@ -147,6 +152,7 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
                 if (options.mode === 'multi-themes') {
                   nextProp.selectors.push(themeSelector)
                 }
+
                 nextProp.nodes.push(node)
                 processedProps[node.prop] = nextProp
                 if (node.parent.type === 'rule') {
@@ -162,6 +168,10 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
                     console.error(`❗️❗️❗️ Missing value for ${variable} for ${[...theme.keys()].join(', ')}. Deleting css rule...`)
                   }
               }
+            }
+
+            if (options.debug) {
+              processedProps[node.prop].nodes.unshift(comment({ text: variables.join(', ') }))
             }
           }
         }
