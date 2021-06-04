@@ -9,7 +9,9 @@ const readFileAsync = promisify(readFile)
 /**
  * Extract variables from array with themes.
  */
-export async function extractVariablesFromThemes(themes: string[][]): Promise<Set<StringStringMap>> {
+export async function extractVariablesFromThemes(
+  themes: string[][],
+): Promise<Set<StringStringMap>> {
   const themesSet = new Set<StringStringMap>()
 
   for (const files of themes) {

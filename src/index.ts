@@ -10,7 +10,7 @@ import { addValueToMap, checkNodesProcessed, hasUnprocessedNodes } from './proce
 function getVariableMeta(
   themeMap: StringStringMap,
   variableName: string,
-): { themeSelector: string, value: string } {
+): { themeSelector: string; value: string } {
   const variableMeta = { themeSelector: '', value: '' }
 
   for (const [themeSelector, variablesMap] of themeMap) {
@@ -23,9 +23,9 @@ function getVariableMeta(
   return variableMeta
 }
 
-type RuleProps = { [key in string]: { selectors: string[], nodes: ChildNode[] } }
+type RuleProps = { [key in string]: { selectors: string[]; nodes: ChildNode[] } }
 type AnyDict = { [key in string]: any }
-type EnhancedChildNode = ChildNode & { processed: boolean, broken: boolean }
+type EnhancedChildNode = ChildNode & { processed: boolean; broken: boolean }
 
 type ThemeFoldOptions = {
   /**
@@ -54,7 +54,7 @@ type ThemeFoldOptions = {
   /**
    * Disable warnings
    */
-  disableWarnings?: boolean;
+  disableWarnings?: boolean
 
   /**
    * Show original variables as comment
@@ -62,165 +62,176 @@ type ThemeFoldOptions = {
   debug?: boolean
 }
 
-export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { themes: [], globalSelectors: [] }) => {
-  if (options.themes.length === 0) {
-    throw new Error('Theme options not provided.')
-  }
-
-  if (options.mode === undefined) {
-    if (options.themes.length === 1) {
-      options.mode = 'single-theme'
-    } else {
-      options.mode = 'multi-themes'
+export default plugin<ThemeFoldOptions>(
+  'postcss-theme-fold',
+  (options = { themes: [], globalSelectors: [] }) => {
+    if (options.themes.length === 0) {
+      throw new Error('Theme options not provided.')
     }
-  }
 
-  if (options.mode === 'single-theme') {
-    if (options.themes.length > 2) {
-      throw new Error('For single mode themes should contains one theme.')
+    if (options.mode === undefined) {
+      if (options.themes.length === 1) {
+        options.mode = 'single-theme'
+      } else {
+        options.mode = 'multi-themes'
+      }
     }
-  }
 
-  return async (root) => {
-    const themesSet = await getFromCache(() => extractVariablesFromThemes(options.themes))
-    const uniqVariables = new Set([...themesSet].reduce<string[]>((res, themeMap) => {
-      for (const [, variablesMap] of themeMap) {
-        res = res.concat([...variablesMap.keys()])
+    if (options.mode === 'single-theme') {
+      if (options.themes.length > 2) {
+        throw new Error('For single mode themes should contains one theme.')
       }
+    }
 
-      return res;
-    }, []));
+    return async (root) => {
+      const themesSet = await getFromCache(() => extractVariablesFromThemes(options.themes))
+      const uniqVariables = new Set(
+        [...themesSet].reduce<string[]>((res, themeMap) => {
+          for (const [, variablesMap] of themeMap) {
+            res = res.concat([...variablesMap.keys()])
+          }
 
-    const processedSelectorsSet = new Set()
-    const processedPropsMap = new Map()
+          return res
+        }, []),
+      )
 
-    root.walkRules((rule) => {
-      // Remove theme selectors cuz css variables not needed in runtime.
-      if (THEME_SELECTOR_RE.test(rule.selector)) {
-        rule.remove()
-        return
-      }
+      const processedSelectorsSet = new Set()
+      const processedPropsMap = new Map()
 
-      if (rule.nodes === undefined) {
-        return
-      }
+      root.walkRules((rule) => {
+        // Remove theme selectors cuz css variables not needed in runtime.
+        if (THEME_SELECTOR_RE.test(rule.selector)) {
+          rule.remove()
+          return
+        }
 
-      const rules = []
+        if (rule.nodes === undefined) {
+          return
+        }
 
-      for (const theme of themesSet) {
-        const nextRule = rule.clone()
-        const processedProps: RuleProps = {}
-        const themeSelectors: AnyDict = {}
-        const brokenNodes = []
+        const rules = []
 
-        // Cast to `EnhancedChildNode` cuz before we already check nodes for undefined.
-        for (const node of (nextRule.nodes as EnhancedChildNode[])) {
-          if (node.type === 'decl') {
-            if (
-              options.shouldProcessVariable !== undefined &&
-              options.shouldProcessVariable(node) === false
-            ) {
-              continue;
-            }
+        for (const theme of themesSet) {
+          const nextRule = rule.clone()
+          const processedProps: RuleProps = {}
+          const themeSelectors: AnyDict = {}
+          const brokenNodes = []
 
-            let executed = null
-            const variables = []
-
-            while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
-              // Avoid infinite loops with zero-width matches.
-              if (executed.index === VARIABLE_USE_RE.lastIndex) {
-                VARIABLE_USE_RE.lastIndex++
-              }
-              variables.push(executed[1])
-            }
-
-            for (const variable of variables) {
-              // Variable absence in uniqVariables means that
-              // it's not present in any theme.
-              node.processed = uniqVariables.has(variable)
-
-              if (!node.processed) {
+          // Cast to `EnhancedChildNode` cuz before we already check nodes for undefined.
+          for (const node of nextRule.nodes as EnhancedChildNode[]) {
+            if (node.type === 'decl') {
+              if (
+                options.shouldProcessVariable !== undefined &&
+                options.shouldProcessVariable(node) === false
+              ) {
                 continue
               }
-              const { value, themeSelector } = getVariableMeta(theme, variable)
-              // When variable not found then skip this rule for processing.
-              if (node.value && value !== '') {
-                // Mark node as processed and remove them later.
-                node.value = node.value.replace(VARIABLE_FULL_RE, value)
-                const nextProp = processedProps[node.prop] || { selectors: [], nodes: [] }
-                // Accumulate theme selectors only for multi themes.
-                if (options.mode === 'multi-themes') {
-                  nextProp.selectors.push(themeSelector)
-                }
 
-                nextProp.nodes.push(node)
-                processedProps[node.prop] = nextProp
-                if (node.parent.type === 'rule') {
-                  const rootSelector = options.mode === 'multi-themes' ? themeSelector : node.parent.selector.trim();
-                  addValueToMap(processedPropsMap, rootSelector, { selector: node.parent.selector.trim(), value: node.value, prop: node.prop });
+              let executed = null
+              const variables = []
+
+              while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
+                // Avoid infinite loops with zero-width matches.
+                if (executed.index === VARIABLE_USE_RE.lastIndex) {
+                  VARIABLE_USE_RE.lastIndex++
                 }
-              } else {
+                variables.push(executed[1])
+              }
+
+              for (const variable of variables) {
+                // Variable absence in uniqVariables means that
+                // it's not present in any theme.
+                node.processed = uniqVariables.has(variable)
+
+                if (!node.processed) {
+                  continue
+                }
+                const { value, themeSelector } = getVariableMeta(theme, variable)
+                // When variable not found then skip this rule for processing.
+                if (node.value && value !== '') {
+                  // Mark node as processed and remove them later.
+                  node.value = node.value.replace(VARIABLE_FULL_RE, value)
+                  const nextProp = processedProps[node.prop] || { selectors: [], nodes: [] }
+                  // Accumulate theme selectors only for multi themes.
+                  if (options.mode === 'multi-themes') {
+                    nextProp.selectors.push(themeSelector)
+                  }
+
+                  nextProp.nodes.push(node)
+                  processedProps[node.prop] = nextProp
+                  if (node.parent.type === 'rule') {
+                    const rootSelector =
+                      options.mode === 'multi-themes' ? themeSelector : node.parent.selector.trim()
+                    addValueToMap(processedPropsMap, rootSelector, {
+                      selector: node.parent.selector.trim(),
+                      value: node.value,
+                      prop: node.prop,
+                    })
+                  }
+                } else {
                   // If variable is absent in current theme,
                   // it can pe present in another, however,  but we have to warn about  it.
-                  node.broken = true;
-                  brokenNodes.push(node);
+                  node.broken = true
+                  brokenNodes.push(node)
                   if (!options.disableWarnings) {
+                    // prettier-ignore
                     console.error(`❗️❗️❗️ Missing value for ${variable} for ${[...theme.keys()].join(', ')}. Deleting css rule...`)
                   }
+                }
+              }
+
+              if (options.debug) {
+                processedProps[node.prop].nodes.unshift(comment({ text: variables.join(', ') }))
               }
             }
+          }
 
-            if (options.debug) {
-              processedProps[node.prop].nodes.unshift(comment({ text: variables.join(', ') }))
+          // When `processedProps` is empty this means rule not have css variables from theme,
+          // and we not cache this in `processedSelectorsSet` cuz him may be declared in other place.
+          // `processedProps` absence can possibly mean that variable value is missing only in
+          // one particular theme, not it every theme.
+          if (Object.keys(processedProps).length === 0) {
+            // Also that can mean that we met some rule without variables -
+            // rules like this do not have broken or processed nodes, so we can
+            // break to prevert double adding.
+            if (!brokenNodes.length) {
+              rules.push(nextRule)
+              break
+            } else {
+              // ...and continue for rules, which have some chance to be
+              // processed in another themes (with broken nodes).
+              continue
             }
           }
-        }
 
-        // When `processedProps` is empty this means rule not have css variables from theme,
-        // and we not cache this in `processedSelectorsSet` cuz him may be declared in other place.
-        // `processedProps` absence can possibly mean that variable value is missing only in
-        // one particular theme, not it every theme.
-        if (Object.keys(processedProps).length === 0) {
-          // Also that can mean that we met some rule without variables -
-          // rules like this do not have broken or processed nodes, so we can
-          // break to prevert double adding.
-          if (!brokenNodes.length) {
-            rules.push(nextRule);
-            break;
-          } else {
-            // ...and continue for rules, which have some chance to be
-            // processed in another themes (with broken nodes).
-            continue;
+          // Prevent duplicate already processed selectors.
+          if (!processedSelectorsSet.has(nextRule.selector)) {
+            processedSelectorsSet.add(nextRule.selector)
+            // Remove already processed and broken (without value) nodes from base rule.
+            nextRule.nodes = (nextRule.nodes as EnhancedChildNode[]).filter(
+              (node) => !node.processed && !node.broken,
+            )
+            if (nextRule.nodes.length > 0) {
+              // Push nextRule before forkedRule,
+              // cuz them maybe contains not processed selectors.
+              rules.push(nextRule)
+            }
           }
-        }
 
-        // Prevent duplicate already processed selectors.
-        if (!processedSelectorsSet.has(nextRule.selector)) {
-          processedSelectorsSet.add(nextRule.selector)
-          // Remove already processed and broken (without value) nodes from base rule.
-          nextRule.nodes = (nextRule.nodes as EnhancedChildNode[]).filter((node) => !node.processed && !node.broken)
-          if (nextRule.nodes.length > 0) {
-            // Push nextRule before forkedRule,
-            // cuz them maybe contains not processed selectors.
-            rules.push(nextRule)
+          // Create shape with unique theme selectors and nodes.
+          for (const key in processedProps) {
+            const selector = uniq(processedProps[key].selectors).join('')
+            const nodes = uniq(processedProps[key].nodes)
+            if (themeSelectors[selector] === undefined) {
+              themeSelectors[selector] = []
+            }
+            themeSelectors[selector].push(...nodes)
           }
-        }
 
-        // Create shape with unique theme selectors and nodes.
-        for (const key in processedProps) {
-          const selector = uniq(processedProps[key].selectors).join('')
-          const nodes = uniq(processedProps[key].nodes)
-          if (themeSelectors[selector] === undefined) {
-            themeSelectors[selector] = []
-          }
-          themeSelectors[selector].push(...nodes)
-        }
-
-        for (const themeSelector in themeSelectors) {
-          const forkedRule = rule.clone()
-          // Add extra theme selectors for forked rule.
-          forkedRule.selectors = forkedRule.selectors
-            .map((selector) => {
+          for (const themeSelector in themeSelectors) {
+            const forkedRule = rule.clone()
+            // Add extra theme selectors for forked rule.
+            forkedRule.selectors = forkedRule.selectors.map((selector) => {
               // Only work for single root selector, e.g. `.utilityfocus .Button {...}`.
               const maybeGlobalSelector = (options.globalSelectors || []).find((globalSelector) => {
                 const [firstSelector] = selector.split(' ')
@@ -234,18 +245,23 @@ export default plugin<ThemeFoldOptions>('postcss-theme-fold', (options = { theme
               const nextSelector = selector.replace(maybeGlobalSelector, '')
               return `${maybeGlobalSelector} ${themeSelector} ${nextSelector}`
             })
-          forkedRule.nodes = themeSelectors[themeSelector]
-          // Prevent duplicate already processed selectors.
-          const rootSelector = options.mode === 'multi-themes' ? themeSelector : forkedRule.selector.trim();
-          if (!processedSelectorsSet.has(forkedRule.selector) || hasUnprocessedNodes(processedPropsMap, rootSelector)) {
-            checkNodesProcessed(processedPropsMap, forkedRule.nodes || [], themeSelector);
-            processedSelectorsSet.add(forkedRule.selector)
-            rules.push(forkedRule)
+            forkedRule.nodes = themeSelectors[themeSelector]
+            // Prevent duplicate already processed selectors.
+            const rootSelector =
+              options.mode === 'multi-themes' ? themeSelector : forkedRule.selector.trim()
+            if (
+              !processedSelectorsSet.has(forkedRule.selector) ||
+              hasUnprocessedNodes(processedPropsMap, rootSelector)
+            ) {
+              checkNodesProcessed(processedPropsMap, forkedRule.nodes || [], themeSelector)
+              processedSelectorsSet.add(forkedRule.selector)
+              rules.push(forkedRule)
+            }
           }
         }
-      }
 
-      rule.replaceWith(...rules)
-    })
-  }
-})
+        rule.replaceWith(...rules)
+      })
+    }
+  },
+)
