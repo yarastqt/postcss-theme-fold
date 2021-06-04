@@ -343,7 +343,7 @@ describe('postcss-theme-fold', () => {
       })
     ])
 
-    test('should expand variables without theme selector', async () => {
+    test('should print original variables for comment', async () => {
       await run(
         '.Button { border: var(--size-1) solid var(--color-1); }',
         '.Button {/* --size-1, --color-1 */ border: 10px solid #fff; }',
