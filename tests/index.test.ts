@@ -334,4 +334,20 @@ describe('postcss-theme-fold', () => {
       )
     })
   })
+
+  describe('debug', () => {
+    const run = configureRunner([
+      postcssThemeFold({
+        themes: [themeA],
+        debug: true,
+      })
+    ])
+
+    test('should expand variables without theme selector', async () => {
+      await run(
+        '.Button { border: var(--size-1) solid var(--color-1); }',
+        '.Button {/* --size-1, --color-1 */ border: 10px solid #fff; }',
+      )
+    })
+  })
 })

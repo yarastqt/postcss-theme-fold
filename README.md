@@ -44,6 +44,7 @@ postcss([
 * **mode ('single-theme' | 'multi-themes')**: Method of theme folding, by default choice mode in relation from themes size. `single-theme` — don't accumulate cascade with theme selectors. `multi-themes` — accumulate cascade with theme selectors.
 * **shouldProcessVariable (declaration: Declaration) => boolean**: Predicate for processing each nodes.
 * **disableWarnings**: Disable warnings about missing values
+* **debug**: Show original variables as comment
 
 ### Example content
 
