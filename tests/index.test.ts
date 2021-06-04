@@ -1,7 +1,7 @@
 import postcssThemeFold from '../src/index'
 
 jest.mock('../src/cache', () => ({
-  getFromCache: (a: Function) => (a())
+  getFromCache: (a: Function) => a(),
 }))
 
 import { configureRunner } from './__internal/runner'
@@ -26,15 +26,15 @@ const themeB = [
 ]
 
 describe('postcss-theme-fold', () => {
-  let errorLog:() => void;
+  let errorLog: () => void
 
   beforeAll(() => {
-    errorLog =  console.error;
-    console.error = jest.fn().mockImplementation(() => {});
+    errorLog = console.error
+    console.error = jest.fn().mockImplementation(() => {})
   })
 
   afterAll(() => {
-    console.error = errorLog;
+    console.error = errorLog
   })
 
   test('should throw error when themes are empty', async () => {
@@ -42,9 +42,9 @@ describe('postcss-theme-fold', () => {
       configureRunner([
         postcssThemeFold({
           themes: [],
-        })
+        }),
       ])('', '')
-    } catch(error) {
+    } catch (error) {
       expect(error).toHaveProperty('message', 'Theme options not provided.')
     }
   })
@@ -55,9 +55,9 @@ describe('postcss-theme-fold', () => {
         postcssThemeFold({
           themes: [themeA, themeB],
           mode: 'single-theme',
-        })
+        }),
       ])('', '')
-    } catch(error) {
+    } catch (error) {
       expect(error).toHaveProperty('message', 'For single mode themes should contains one theme.')
     }
   })
@@ -67,7 +67,7 @@ describe('postcss-theme-fold', () => {
       postcssThemeFold({
         themes: [themeA, themeB],
         globalSelectors: ['.utilityfocus'],
-      })
+      }),
     ])
 
     test('should expand variables for two colors', async () => {
@@ -115,17 +115,11 @@ describe('postcss-theme-fold', () => {
     })
 
     test('should expand variables without duplicates for size', async () => {
-      await run(
-        '.Button { color: var(--size-1); }',
-        '.Theme_size_a .Button { color: 10px; }',
-      )
+      await run('.Button { color: var(--size-1); }', '.Theme_size_a .Button { color: 10px; }')
     })
 
     test('should remove theme selectors from output', async () => {
-      await run(
-        '.Theme_color_a { --color-1: #fff; }',
-        '',
-      )
+      await run('.Theme_color_a { --color-1: #fff; }', '')
     })
 
     test('should skip variable if then not found in theme', async () => {
@@ -136,17 +130,11 @@ describe('postcss-theme-fold', () => {
     })
 
     test('should skip variable if then not found in theme', async () => {
-      await run(
-        '.Button { color: var(--size-1); }',
-        '.Theme_size_a .Button { color: 10px; }',
-      )
+      await run('.Button { color: var(--size-1); }', '.Theme_size_a .Button { color: 10px; }')
     })
 
     test('should skip selector without variables', async () => {
-      await run(
-        '.Button { color: #fff; }',
-        '.Button { color: #fff; }',
-      )
+      await run('.Button { color: #fff; }', '.Button { color: #fff; }')
     })
 
     test('should skip selector without variables and duplicate declaration', async () => {
@@ -235,8 +223,8 @@ describe('postcss-theme-fold', () => {
             .Theme_color_a .Button { color: #000;}
             .Theme_color_b .Button { color: rgb(38, 38, 38);}
           }
-        `
-    )
+        `,
+      )
     })
   })
 
@@ -245,21 +233,18 @@ describe('postcss-theme-fold', () => {
       postcssThemeFold({
         themes: [themeA],
         globalSelectors: ['.utilityfocus'],
-      })
+      }),
     ])
 
     test('should expand variables without theme selector', async () => {
-      await run(
-        '.Button { color: var(--color-1); }',
-        '.Button { color: #fff; }',
-      )
+      await run('.Button { color: var(--color-1); }', '.Button { color: #fff; }')
     })
 
     test('should expand override selectors', async () => {
       await run(
         '.Button { color: var(--color-0);} @media and screen (mix-width: 500px) { .Button { padding: var(--cosmetic-1);}}',
-        '.Button { color: #fff;} @media and screen (mix-width: 500px) { .Button { padding: 2px;}}'
-    )
+        '.Button { color: #fff;} @media and screen (mix-width: 500px) { .Button { padding: 2px;}}',
+      )
     })
   })
 
@@ -268,21 +253,18 @@ describe('postcss-theme-fold', () => {
       postcssThemeFold({
         themes: [rootTheme],
         globalSelectors: ['.utilityfocus'],
-      })
+      }),
     ])
 
     test('should expand variables without theme selector', async () => {
-      await run(
-        '.Button { color: var(--color-1); }',
-        '.Button { color: #fff; }',
-      )
+      await run('.Button { color: var(--color-1); }', '.Button { color: #fff; }')
     })
 
     test('should expand override selectors', async () => {
       await run(
         '.Button { color: var(--color-0);} @media and screen (mix-width: 500px) { .Button { padding: var(--cosmetic-1);}}',
-        '.Button { color: #fff;} @media and screen (mix-width: 500px) { .Button { padding: 2px;}}'
-    )
+        '.Button { color: #fff;} @media and screen (mix-width: 500px) { .Button { padding: 2px;}}',
+      )
     })
   })
 
@@ -300,8 +282,8 @@ describe('postcss-theme-fold', () => {
               return false
             }
             return true
-          }
-        })
+          },
+        }),
       ])
 
       await run(
@@ -324,8 +306,8 @@ describe('postcss-theme-fold', () => {
               return false
             }
             return true
-          }
-        })
+          },
+        }),
       ])
 
       await run(
@@ -340,7 +322,7 @@ describe('postcss-theme-fold', () => {
       postcssThemeFold({
         themes: [themeA],
         debug: true,
-      })
+      }),
     ])
 
     test('should print original variables for comment', async () => {
