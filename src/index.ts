@@ -23,7 +23,7 @@ function getVariableMeta(
   return variableMeta
 }
 
-type RuleProps = { [key in string]: { selectors: string[]; nodes: ChildNode[] } }
+type RuleProps = { [key in string]?: { selectors: string[]; nodes: ChildNode[] } }
 type AnyDict = { [key in string]: any }
 type EnhancedChildNode = ChildNode & { processed: boolean; broken: boolean }
 
@@ -129,6 +129,8 @@ export default plugin<ThemeFoldOptions>(
 
               let executed = null
               const variables = []
+              // Use this variables for debug.
+              const usedVariables = []
 
               while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
                 // Avoid infinite loops with zero-width matches.
@@ -158,6 +160,7 @@ export default plugin<ThemeFoldOptions>(
                     nextProp.selectors.push(themeSelector)
                   }
 
+                  usedVariables.push(variable)
                   nextProp.nodes.push(node)
                   processedProps[node.prop] = nextProp
                   if (node.parent.type === 'rule') {
@@ -182,7 +185,8 @@ export default plugin<ThemeFoldOptions>(
               }
 
               if (options.debug) {
-                processedProps[node.prop].nodes.unshift(comment({ text: variables.join(', ') }))
+                const commentNode = comment({ text: usedVariables.join(', ') })
+                processedProps[node.prop]?.nodes.unshift(commentNode)
               }
             }
           }
@@ -221,8 +225,12 @@ export default plugin<ThemeFoldOptions>(
 
           // Create shape with unique theme selectors and nodes.
           for (const key in processedProps) {
-            const selector = uniq(processedProps[key].selectors).join('')
-            const nodes = uniq(processedProps[key].nodes)
+            const processedProp = processedProps[key]
+            if (!processedProp) {
+              continue
+            }
+            const selector = uniq(processedProp.selectors).join('')
+            const nodes = uniq(processedProp.nodes)
             if (themeSelectors[selector] === undefined) {
               themeSelectors[selector] = []
             }
