@@ -1,7 +1,7 @@
 import { ChildNode, Declaration, plugin, comment } from 'postcss'
 
 import { getFromCache } from './cache'
-import { THEME_SELECTOR_RE, VARIABLE_USE_RE, VARIABLE_FULL_RE } from './shared'
+import { THEME_SELECTOR_RE, VARIABLE_USE_RE } from './shared'
 import { StringStringMap } from './extract-theme-variables'
 import { extractVariablesFromThemes } from './extract-variables-from-themes'
 import { uniq } from './uniq'
@@ -150,7 +150,8 @@ export default plugin<ThemeFoldOptions>(
                 // When variable not found then skip this rule for processing.
                 if (node.value && value !== '') {
                   // Mark node as processed and remove them later.
-                  node.value = node.value.replace(VARIABLE_FULL_RE, value)
+                  const variableRe = new RegExp(`var\\(${variable}\\)`)
+                  node.value = node.value.replace(variableRe, value)
                   const nextProp = processedProps[node.prop] || { selectors: [], nodes: [] }
                   // Accumulate theme selectors only for multi themes.
                   if (options.mode === 'multi-themes') {
