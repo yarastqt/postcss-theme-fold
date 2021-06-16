@@ -331,5 +331,12 @@ describe('postcss-theme-fold', () => {
         '.Button {/* --size-1, --color-1 */ border: 10px solid #fff; }',
       )
     })
+
+    test('should print only knows variables', async () => {
+      await run(
+        '.Button { border: var(--color-100500) solid var(--color-1); }',
+        '.Button {/* --color-1 */ border: var(--color-100500) solid #fff; }',
+      )
+    })
   })
 })
