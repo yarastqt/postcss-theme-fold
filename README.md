@@ -45,6 +45,7 @@ postcss([
 * **shouldProcessVariable (declaration: Declaration) => boolean**: Predicate for processing each nodes.
 * **disableWarnings**: Disable warnings about missing values
 * **debug**: Show original variables as comment
+* **preserve:** Preserve original declaration
 
 ### Example content
 

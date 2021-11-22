@@ -25,7 +25,7 @@ function getVariableMeta(
 
 type RuleProps = { [key in string]?: { selectors: string[]; nodes: ChildNode[] } }
 type AnyDict = { [key in string]: any }
-type EnhancedChildNode = ChildNode & { processed: boolean; broken: boolean }
+type EnhancedChildNode = ChildNode & { processed: boolean; broken: boolean; original: ChildNode }
 
 type ThemeFoldOptions = {
   /**
@@ -60,6 +60,11 @@ type ThemeFoldOptions = {
    * Show original variables as comment
    */
   debug?: boolean
+
+  /**
+   * Preserve original declaration
+   */
+  preserve?: boolean
 }
 
 export default plugin<ThemeFoldOptions>(
@@ -119,6 +124,12 @@ export default plugin<ThemeFoldOptions>(
 
           // Cast to `EnhancedChildNode` cuz before we already check nodes for undefined.
           for (const node of nextRule.nodes as EnhancedChildNode[]) {
+            if (options.preserve) {
+              // Create original node for preserve processing.
+              node.original = node.clone()
+              node.original.parent = node.parent
+            }
+
             if (node.type === 'decl') {
               if (
                 options.shouldProcessVariable !== undefined &&
@@ -187,6 +198,10 @@ export default plugin<ThemeFoldOptions>(
               if (options.debug) {
                 const commentNode = comment({ text: usedVariables.join(', ') })
                 processedProps[node.prop]?.nodes.unshift(commentNode)
+              }
+
+              if (options.preserve) {
+                processedProps[node.prop]?.nodes.push(node.original)
               }
             }
           }
