@@ -339,4 +339,20 @@ describe('postcss-theme-fold', () => {
       )
     })
   })
+
+  describe('preserve', () => {
+    const run = configureRunner([
+      postcssThemeFold({
+        themes: [themeA],
+        preserve: true,
+      }),
+    ])
+
+    test('should preserve original variables', async () => {
+      await run(
+        '.Button { border: var(--size-1) solid var(--color-1); }',
+        '.Button { border: 10px solid #fff; border: var(--size-1) solid var(--color-1); }',
+      )
+    })
+  })
 })
