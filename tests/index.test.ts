@@ -30,7 +30,7 @@ describe('postcss-theme-fold', () => {
 
   beforeAll(() => {
     errorLog = console.error
-    console.error = jest.fn().mockImplementation(() => {})
+    console.error = jest.fn().mockImplementation(() => { })
   })
 
   afterAll(() => {
@@ -340,7 +340,7 @@ describe('postcss-theme-fold', () => {
     })
   })
 
-  describe('preserve', () => {
+  describe('preserve true', () => {
     const run = configureRunner([
       postcssThemeFold({
         themes: [themeA],
@@ -348,10 +348,35 @@ describe('postcss-theme-fold', () => {
       }),
     ])
 
-    test('should preserve original variables', async () => {
+    test('should preserve all original variables', async () => {
       await run(
         '.Button { border: var(--size-1) solid var(--color-1); }',
         '.Button { border: 10px solid #fff; border: var(--size-1) solid var(--color-1); }',
+      )
+    })
+  })
+
+  describe('preserve list', () => {
+    const run = configureRunner([
+      postcssThemeFold({
+        themes: [themeA],
+        preserve: [
+          '--color-1'
+        ]
+      }),
+    ])
+
+    test('should preserve original variables of elements in preserve', async () => {
+      await run(
+        '.Button { border: var(--size-1) solid var(--color-1); }',
+        '.Button { border: 10px solid #fff; border: var(--size-1) solid var(--color-1); }',
+      )
+    })
+
+    test('should not preserve original variables of elements in preserve', async () => {
+      await run(
+        '.Button { border: var(--size-1) solid var(--color-1); color: var(--color-0); }',
+        '.Button { border: 10px solid #fff; border: var(--size-1) solid var(--color-1); color: #fff; }',
       )
     })
   })

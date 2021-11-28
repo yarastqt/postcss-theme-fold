@@ -64,7 +64,7 @@ type ThemeFoldOptions = {
   /**
    * Preserve original declaration
    */
-  preserve?: boolean
+  preserve?: string[] | boolean
 }
 
 export default plugin<ThemeFoldOptions>(
@@ -87,6 +87,8 @@ export default plugin<ThemeFoldOptions>(
         throw new Error('For single mode themes should contains one theme.')
       }
     }
+
+    const preserveSet = Array.isArray(options.preserve) ? new Set(options.preserve) : undefined;
 
     return async (root) => {
       const themesSet = await getFromCache(() => extractVariablesFromThemes(options.themes))
@@ -200,7 +202,8 @@ export default plugin<ThemeFoldOptions>(
                 processedProps[node.prop]?.nodes.unshift(commentNode)
               }
 
-              if (options.preserve) {
+              const shouldPreserve = preserveSet ? variables.some((value) => preserveSet.has(value)) : options.preserve;
+              if (shouldPreserve) {
                 processedProps[node.prop]?.nodes.push(node.original)
               }
             }
