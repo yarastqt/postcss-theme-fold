@@ -7,7 +7,7 @@ Postcss plugin for folding css-variables with using [whitepaper](whitepaper) des
 ## Install
 
 ```sh
-npm i -D postcss-theme-fold
+npm i -D postcss postcss-theme-fold
 ```
 
 ## Usage

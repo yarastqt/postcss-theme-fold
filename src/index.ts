@@ -1,7 +1,7 @@
-import { ChildNode, Declaration, plugin, comment } from 'postcss'
+import { ChildNode, Declaration, comment, Root } from 'postcss'
 
 import { getFromCache } from './cache'
-import { THEME_SELECTOR_RE, VARIABLE_USE_RE } from './shared'
+import { EnhancedChildNode, THEME_SELECTOR_RE, VARIABLE_USE_RE } from './shared'
 import { StringStringMap } from './extract-theme-variables'
 import { extractVariablesFromThemes } from './extract-variables-from-themes'
 import { uniq } from './uniq'
@@ -25,7 +25,6 @@ function getVariableMeta(
 
 type RuleProps = { [key in string]?: { selectors: string[]; nodes: ChildNode[] } }
 type AnyDict = { [key in string]: any }
-type EnhancedChildNode = ChildNode & { processed: boolean; broken: boolean; original: ChildNode }
 
 type ThemeFoldOptions = {
   /**
@@ -67,30 +66,30 @@ type ThemeFoldOptions = {
   preserve?: string[] | boolean
 }
 
-export default plugin<ThemeFoldOptions>(
-  'postcss-theme-fold',
-  (options = { themes: [], globalSelectors: [] }) => {
-    if (options.themes.length === 0) {
-      throw new Error('Theme options not provided.')
+export default (options: ThemeFoldOptions = { themes: [], globalSelectors: [] }) => {
+  if (options.themes.length === 0) {
+    throw new Error('Theme options not provided.')
+  }
+
+  if (options.mode === undefined) {
+    if (options.themes.length === 1) {
+      options.mode = 'single-theme'
+    } else {
+      options.mode = 'multi-themes'
     }
+  }
 
-    if (options.mode === undefined) {
-      if (options.themes.length === 1) {
-        options.mode = 'single-theme'
-      } else {
-        options.mode = 'multi-themes'
-      }
+  if (options.mode === 'single-theme') {
+    if (options.themes.length > 2) {
+      throw new Error('For single mode themes should contains one theme.')
     }
+  }
 
-    if (options.mode === 'single-theme') {
-      if (options.themes.length > 2) {
-        throw new Error('For single mode themes should contains one theme.')
-      }
-    }
+  const preserveSet = Array.isArray(options.preserve) ? new Set(options.preserve) : undefined;
 
-    const preserveSet = Array.isArray(options.preserve) ? new Set(options.preserve) : undefined;
-
-    return async (root) => {
+  return {
+    postcssPlugin: 'postcss-theme-fold',
+    Once: async (root: Root) => {
       const themesSet = await getFromCache(() => extractVariablesFromThemes(options.themes))
       const uniqVariables = new Set(
         [...themesSet].reduce<string[]>((res, themeMap) => {
@@ -280,7 +279,7 @@ export default plugin<ThemeFoldOptions>(
               !processedSelectorsSet.has(forkedRule.selector) ||
               hasUnprocessedNodes(processedPropsMap, rootSelector)
             ) {
-              checkNodesProcessed(processedPropsMap, forkedRule.nodes || [], themeSelector)
+              checkNodesProcessed(processedPropsMap, (forkedRule.nodes || []) as EnhancedChildNode[], themeSelector)
               processedSelectorsSet.add(forkedRule.selector)
               rules.push(forkedRule)
             }
@@ -290,5 +289,7 @@ export default plugin<ThemeFoldOptions>(
         rule.replaceWith(...rules)
       })
     }
-  },
-)
+  }
+}
+
+module.exports.postcss = true;
