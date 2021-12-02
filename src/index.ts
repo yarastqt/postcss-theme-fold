@@ -6,6 +6,7 @@ import { StringStringMap } from './extract-theme-variables'
 import { extractVariablesFromThemes } from './extract-variables-from-themes'
 import { uniq } from './uniq'
 import { addValueToMap, checkNodesProcessed, hasUnprocessedNodes } from './processed-map'
+import { extractVariablesFromString } from './extract-variables-from-string'
 
 function getVariableMeta(
   themeMap: StringStringMap,
@@ -139,18 +140,8 @@ export default (options: ThemeFoldOptions = { themes: [], globalSelectors: [] })
                 continue
               }
 
-              let executed = null
-              const variables = []
-              // Use this variables for debug.
-              const usedVariables = []
-
-              while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
-                // Avoid infinite loops with zero-width matches.
-                if (executed.index === VARIABLE_USE_RE.lastIndex) {
-                  VARIABLE_USE_RE.lastIndex++
-                }
-                variables.push(executed[1])
-              }
+              const variables = extractVariablesFromString(node.value);
+              const usedVariables = [];
 
               for (const variable of variables) {
                 // Variable absence in uniqVariables means that
@@ -160,6 +151,7 @@ export default (options: ThemeFoldOptions = { themes: [], globalSelectors: [] })
                 if (!node.processed) {
                   continue
                 }
+
                 const { value, themeSelector } = getVariableMeta(theme, variable)
                 // When variable not found then skip this rule for processing.
                 if (node.value && value !== '') {

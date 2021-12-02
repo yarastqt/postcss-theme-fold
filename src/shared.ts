@@ -1,4 +1,4 @@
-import { ChildNode } from "postcss"
+import { ChildNode, Declaration } from "postcss"
 
 export const THEME_SELECTOR_RE = /^(.Theme_)|(:root)/
 export const VARIABLE_DECL_RE = /^--/
