@@ -201,8 +201,23 @@ export default (options: ThemeFoldOptions = { themes: [], globalSelectors: [] })
                 processedProps[node.prop]?.nodes.unshift(commentNode)
               }
 
-              const shouldPreserve = preserveSet ? variables.some((value) => preserveSet.has(value)) : options.preserve;
-              if (shouldPreserve) {
+              if (Array.isArray(options.preserve)) {
+                const hasVariablesToPreserve = variables.some(variable => preserveSet?.has(variable));
+                if (!hasVariablesToPreserve) {
+                  continue;
+                }
+
+                const originalNode = node.original as Declaration;
+                for (let variable of variables) {
+                  const variableRe = new RegExp(`var\\(${variable}\\)`);
+                  const { value: resolvedVariable } = getVariableMeta(theme, variable)
+
+                  const replaceWith = preserveSet?.has(variable) ? `var(${variable}, ${resolvedVariable})` : resolvedVariable;
+                  originalNode.value = originalNode.value.replace(variableRe, replaceWith);
+                }
+
+                processedProps[node.prop]?.nodes.push(originalNode)
+              } else if (options.preserve) {
                 processedProps[node.prop]?.nodes.push(node.original)
               }
             }
