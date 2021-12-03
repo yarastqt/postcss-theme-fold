@@ -30,7 +30,7 @@ describe('postcss-theme-fold', () => {
 
   beforeAll(() => {
     errorLog = console.error
-    console.error = jest.fn().mockImplementation(() => { })
+    console.error = jest.fn().mockImplementation(() => {})
   })
 
   afterAll(() => {
@@ -201,7 +201,7 @@ describe('postcss-theme-fold', () => {
     test('should process global selector', async () => {
       await run(
         '.utilityfocus .Button { color: var(--size-1); }',
-        '.utilityfocus .Theme_size_a .Button { color: 10px; }',
+        '.utilityfocus .Theme_size_a .Button, .utilityfocus.Theme_size_a .Button { color: 10px; }',
       )
       await run(
         '.utilityfocus-fake .Button { color: var(--size-1); }',
@@ -360,9 +360,7 @@ describe('postcss-theme-fold', () => {
     const run = configureRunner([
       postcssThemeFold({
         themes: [themeA],
-        preserve: [
-          '--color-1'
-        ]
+        preserve: ['--color-1'],
       }),
     ])
 

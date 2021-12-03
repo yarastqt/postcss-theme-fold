@@ -54,7 +54,7 @@ describe('extract-theme-variables', () => {
     )
     try {
       await extractThemeVariables(content)
-    } catch (error) {
+    } catch (error: any) {
       expect(error.message).toBe('Theme should contains only variable declarations.')
     }
   })

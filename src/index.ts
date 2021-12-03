@@ -88,7 +88,7 @@ export default plugin<ThemeFoldOptions>(
       }
     }
 
-    const preserveSet = Array.isArray(options.preserve) ? new Set(options.preserve) : undefined;
+    const preserveSet = Array.isArray(options.preserve) ? new Set(options.preserve) : undefined
 
     return async (root) => {
       const themesSet = await getFromCache(() => extractVariablesFromThemes(options.themes))
@@ -202,7 +202,9 @@ export default plugin<ThemeFoldOptions>(
                 processedProps[node.prop]?.nodes.unshift(commentNode)
               }
 
-              const shouldPreserve = preserveSet ? variables.some((value) => preserveSet.has(value)) : options.preserve;
+              const shouldPreserve = preserveSet
+                ? variables.some((value) => preserveSet.has(value))
+                : options.preserve
               if (shouldPreserve) {
                 processedProps[node.prop]?.nodes.push(node.original)
               }
@@ -258,18 +260,24 @@ export default plugin<ThemeFoldOptions>(
           for (const themeSelector in themeSelectors) {
             const forkedRule = rule.clone()
             // Add extra theme selectors for forked rule.
-            forkedRule.selectors = forkedRule.selectors.map((selector) => {
+            forkedRule.selectors = forkedRule.selectors.flatMap((selector) => {
               // Only work for single root selector, e.g. `.utilityfocus .Button {...}`.
               const maybeGlobalSelector = (options.globalSelectors || []).find((globalSelector) => {
                 const [firstSelector] = selector.split(' ')
-                if (firstSelector === globalSelector) {
-                  return globalSelector
-                }
+                return firstSelector === globalSelector
               })
               if (maybeGlobalSelector === undefined) {
-                return `${themeSelector} ${selector}`
+                return [`${themeSelector} ${selector}`]
               }
               const nextSelector = selector.replace(maybeGlobalSelector, '')
+
+              if (options.mode === 'multi-themes') {
+                return [
+                  `${maybeGlobalSelector} ${themeSelector} ${nextSelector}`,
+                  `${maybeGlobalSelector}${themeSelector} ${nextSelector}`,
+                ]
+              }
+
               return `${maybeGlobalSelector} ${themeSelector} ${nextSelector}`
             })
             forkedRule.nodes = themeSelectors[themeSelector]
