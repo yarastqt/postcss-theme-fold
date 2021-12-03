@@ -258,19 +258,20 @@ export default plugin<ThemeFoldOptions>(
           for (const themeSelector in themeSelectors) {
             const forkedRule = rule.clone()
             // Add extra theme selectors for forked rule.
-            forkedRule.selectors = forkedRule.selectors.map((selector) => {
+            forkedRule.selectors = forkedRule.selectors.flatMap((selector) => {
               // Only work for single root selector, e.g. `.utilityfocus .Button {...}`.
               const maybeGlobalSelector = (options.globalSelectors || []).find((globalSelector) => {
                 const [firstSelector] = selector.split(' ')
-                if (firstSelector === globalSelector) {
-                  return globalSelector
-                }
+                return firstSelector === globalSelector;
               })
               if (maybeGlobalSelector === undefined) {
-                return `${themeSelector} ${selector}`
+                return [`${themeSelector} ${selector}`]
               }
               const nextSelector = selector.replace(maybeGlobalSelector, '')
-              return `${maybeGlobalSelector} ${themeSelector} ${nextSelector}`
+              return [
+                `${maybeGlobalSelector} ${themeSelector} ${nextSelector}`,
+                `${maybeGlobalSelector}${themeSelector} ${nextSelector}`
+              ]
             })
             forkedRule.nodes = themeSelectors[themeSelector]
             // Prevent duplicate already processed selectors.
