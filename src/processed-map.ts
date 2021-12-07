@@ -1,4 +1,5 @@
 import { ChildNode } from 'postcss'
+import { EnhancedChildNode } from './shared'
 
 export type ProcessedProps = {
   value: string
@@ -51,7 +52,7 @@ export function removeValueFromMap(
 
 export function checkNodesProcessed(
   map: Map<string, ProcessedProps[]>,
-  nodes: ChildNode[],
+  nodes: EnhancedChildNode[],
   themeSelector: string,
 ): void {
   nodes.forEach((node) => {

@@ -1,11 +1,12 @@
-import { ChildNode, Declaration, plugin, comment } from 'postcss'
+import { ChildNode, Declaration, plugin, comment, Root } from 'postcss'
 
 import { getFromCache } from './cache'
-import { THEME_SELECTOR_RE, VARIABLE_USE_RE } from './shared'
+import { THEME_SELECTOR_RE, EnhancedChildNode } from './shared'
 import { StringStringMap } from './extract-theme-variables'
 import { extractVariablesFromThemes } from './extract-variables-from-themes'
 import { uniq } from './uniq'
 import { addValueToMap, checkNodesProcessed, hasUnprocessedNodes } from './processed-map'
+import { extractVariablesFromString } from './extract-variables-from-string'
 
 function getVariableMeta(
   themeMap: StringStringMap,
@@ -25,7 +26,6 @@ function getVariableMeta(
 
 type RuleProps = { [key in string]?: { selectors: string[]; nodes: ChildNode[] } }
 type AnyDict = { [key in string]: any }
-type EnhancedChildNode = ChildNode & { processed: boolean; broken: boolean; original: ChildNode }
 
 type ThemeFoldOptions = {
   /**
@@ -142,18 +142,9 @@ export default plugin<ThemeFoldOptions>(
                 continue
               }
 
-              let executed = null
-              const variables = []
+              const variables = extractVariablesFromString(node.value);
               // Use this variables for debug.
               const usedVariables = []
-
-              while ((executed = VARIABLE_USE_RE.exec(node.value)) !== null) {
-                // Avoid infinite loops with zero-width matches.
-                if (executed.index === VARIABLE_USE_RE.lastIndex) {
-                  VARIABLE_USE_RE.lastIndex++
-                }
-                variables.push(executed[1])
-              }
 
               for (const variable of variables) {
                 // Variable absence in uniqVariables means that
@@ -178,11 +169,13 @@ export default plugin<ThemeFoldOptions>(
                   usedVariables.push(variable)
                   nextProp.nodes.push(node)
                   processedProps[node.prop] = nextProp
-                  if (node.parent.type === 'rule') {
+
+                  const parent = node.parent as EnhancedChildNode;
+                  if (parent.type === 'rule') {
                     const rootSelector =
-                      options.mode === 'multi-themes' ? themeSelector : node.parent.selector.trim()
+                      options.mode === 'multi-themes' ? themeSelector : parent.selector.trim()
                     addValueToMap(processedPropsMap, rootSelector, {
-                      selector: node.parent.selector.trim(),
+                      selector: parent.selector.trim(),
                       value: node.value,
                       prop: node.prop,
                     })
@@ -204,10 +197,19 @@ export default plugin<ThemeFoldOptions>(
                 processedProps[node.prop]?.nodes.unshift(commentNode)
               }
 
-              const shouldPreserve = preserveSet
-                ? variables.some((value) => preserveSet.has(value))
-                : options.preserve
-              if (shouldPreserve) {
+              const hasVariablesToPreserve = preserveSet && variables.some(variable => preserveSet.has(variable));
+              if (hasVariablesToPreserve) {
+                const originalNode = node.original as Declaration;
+                for (let variable of variables) {
+                  const variableRe = new RegExp(`var\\(${variable}\\)`);
+                  const { value: resolvedVariable } = getVariableMeta(theme, variable)
+
+                  const replaceWith = preserveSet.has(variable) ? `var(${variable}, ${resolvedVariable})` : resolvedVariable;
+                  originalNode.value = originalNode.value.replace(variableRe, replaceWith);
+                }
+
+                processedProps[node.prop]?.nodes.push(originalNode)
+              } else if (options.preserve === true) {
                 processedProps[node.prop]?.nodes.push(node.original)
               }
             }
@@ -290,7 +292,7 @@ export default plugin<ThemeFoldOptions>(
               !processedSelectorsSet.has(forkedRule.selector) ||
               hasUnprocessedNodes(processedPropsMap, rootSelector)
             ) {
-              checkNodesProcessed(processedPropsMap, forkedRule.nodes || [], themeSelector)
+              checkNodesProcessed(processedPropsMap, (forkedRule.nodes as EnhancedChildNode[] || []), themeSelector)
               processedSelectorsSet.add(forkedRule.selector)
               rules.push(forkedRule)
             }

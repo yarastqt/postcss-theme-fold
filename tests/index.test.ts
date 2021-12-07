@@ -26,7 +26,7 @@ describe('postcss-theme-fold', () => {
 
   beforeAll(() => {
     errorLog = console.error
-    console.error = jest.fn().mockImplementation(() => {})
+    console.error = jest.fn().mockImplementation(() => { })
   })
 
   afterAll(() => {
@@ -363,14 +363,14 @@ describe('postcss-theme-fold', () => {
     test('should preserve original variables of elements in preserve', async () => {
       await run(
         '.Button { border: var(--size-1) solid var(--color-1); }',
-        '.Button { border: 10px solid #fff; border: var(--size-1) solid var(--color-1); }',
+        '.Button { border: 10px solid #fff; border: 10px solid var(--color-1, #fff); }',
       )
     })
 
     test('should not preserve original variables of elements in preserve', async () => {
       await run(
         '.Button { border: var(--size-1) solid var(--color-1); color: var(--color-0); }',
-        '.Button { border: 10px solid #fff; border: var(--size-1) solid var(--color-1); color: #fff; }',
+        '.Button { border: 10px solid #fff; border: 10px solid var(--color-1, #fff); color: #fff; }',
       )
     })
   })
