@@ -91,7 +91,9 @@ export default plugin<ThemeFoldOptions>(
     const preserveSet = Array.isArray(options.preserve) ? new Set(options.preserve) : undefined
 
     return async (root) => {
-      const themesSet = await getFromCache(() => extractVariablesFromThemes(options.themes))
+      const themesSet = await getFromCache(options.themes, () =>
+        extractVariablesFromThemes(options.themes),
+      )
       const uniqVariables = new Set(
         [...themesSet].reduce<string[]>((res, themeMap) => {
           for (const [, variablesMap] of themeMap) {

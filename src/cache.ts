@@ -1,10 +1,13 @@
-const ref = {
-  current: null,
-}
+const cache = { value: null, key: null }
 
-export function getFromCache<T>(fallback: () => T): T {
-  if (ref.current === null) {
-    ref.current = fallback() as any
+export function getFromCache<T>(key: any, fx: () => T): T {
+  // Serialize key for easy compare.
+  key = JSON.stringify(key)
+
+  if (cache.value === null || cache.key !== key) {
+    cache.value = fx() as any
+    cache.key = key
   }
-  return ref.current as any
+
+  return cache.value as any
 }

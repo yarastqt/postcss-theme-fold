@@ -1,9 +1,5 @@
 import postcssThemeFold from '../src/index'
 
-jest.mock('../src/cache', () => ({
-  getFromCache: (a: Function) => a(),
-}))
-
 import { configureRunner } from './__internal/runner'
 import { resolveFixture } from './__internal/fixture-resolver'
 
