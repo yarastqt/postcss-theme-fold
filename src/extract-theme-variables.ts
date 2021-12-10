@@ -1,4 +1,4 @@
-import postcss from 'postcss'
+import postcss, { plugin, Root } from 'postcss'
 
 import { THEME_SELECTOR_RE, VARIABLE_DECL_RE, VARIABLE_FULL_RE } from './shared'
 
@@ -10,9 +10,9 @@ export type StringStringMap = Map<string, StringMap>
  */
 export async function extractThemeVariables(css: string): Promise<StringStringMap> {
   const variablesMap = new Map<string, StringMap>()
-  const postcssExtractThemeVariable = postcss.plugin(
+  const postcssExtractThemeVariable = plugin(
     'postcss-extract-theme-variable',
-    () => (root) => {
+    () => (root: Root) => {
       root.walkRules(({ selector, nodes }) => {
         if (!THEME_SELECTOR_RE.test(selector) || !nodes) {
           return
