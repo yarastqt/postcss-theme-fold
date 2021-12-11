@@ -24,10 +24,13 @@
     "conventional-changelog-cli": "2.1.0",
     "jest": "24.9.0",
     "ts-jest": "24.2.0",
-    "typescript": "4.5.2"
+    "typescript": "4.5.2",
+    "postcss": "^8.0.0"
+  },
+  "peerDependencies": {
+    "postcss": "^8.0.0"
   },
   "dependencies": {
-    "postcss": "7.0.24",
     "postcss-color-function": "4.1.0",
     "postcss-import": "12.0.1",
     "postcss-simple-vars": "5.0.2"

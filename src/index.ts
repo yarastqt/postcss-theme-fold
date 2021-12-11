@@ -1,33 +1,16 @@
-import { ChildNode, Declaration, plugin, comment, Root } from 'postcss'
+import { ChildNode, Declaration, comment, Root } from 'postcss'
 
 import { getFromCache } from './cache'
-import { THEME_SELECTOR_RE, EnhancedChildNode } from './shared'
+import { EnhancedChildNode, THEME_SELECTOR_RE } from './shared'
 import { StringStringMap } from './extract-theme-variables'
 import { extractVariablesFromThemes } from './extract-variables-from-themes'
 import { uniq } from './uniq'
 import { addValueToMap, checkNodesProcessed, hasUnprocessedNodes } from './processed-map'
 import { extractVariablesFromString } from './extract-variables-from-string'
 
-function getVariableMeta(
-  themeMap: StringStringMap,
-  variableName: string,
-): { themeSelector: string; value: string } {
-  const variableMeta = { themeSelector: '', value: '' }
+type RuleProps = Record<string, { selectors: string[]; nodes: ChildNode[] }>
 
-  for (const [themeSelector, variablesMap] of themeMap) {
-    if (variablesMap.has(variableName)) {
-      variableMeta.themeSelector = themeSelector
-      variableMeta.value = variablesMap.get(variableName) as string
-    }
-  }
-
-  return variableMeta
-}
-
-type RuleProps = { [key in string]?: { selectors: string[]; nodes: ChildNode[] } }
-type AnyDict = { [key in string]: any }
-
-type ThemeFoldOptions = {
+interface ThemeFoldOptions {
   /**
    * List of themes with path to css files.
    */
@@ -67,30 +50,30 @@ type ThemeFoldOptions = {
   preserve?: string[] | boolean
 }
 
-export default plugin<ThemeFoldOptions>(
-  'postcss-theme-fold',
-  (options = { themes: [], globalSelectors: [] }) => {
-    if (options.themes.length === 0) {
-      throw new Error('Theme options not provided.')
+export default (options: ThemeFoldOptions = { themes: [], globalSelectors: [] }) => {
+  if (options.themes.length === 0) {
+    throw new Error('Theme options not provided.')
+  }
+
+  if (options.mode === undefined) {
+    if (options.themes.length === 1) {
+      options.mode = 'single-theme'
+    } else {
+      options.mode = 'multi-themes'
     }
+  }
 
-    if (options.mode === undefined) {
-      if (options.themes.length === 1) {
-        options.mode = 'single-theme'
-      } else {
-        options.mode = 'multi-themes'
-      }
+  if (options.mode === 'single-theme') {
+    if (options.themes.length > 2) {
+      throw new Error('For single mode themes should contains one theme.')
     }
+  }
 
-    if (options.mode === 'single-theme') {
-      if (options.themes.length > 2) {
-        throw new Error('For single mode themes should contains one theme.')
-      }
-    }
+  const preserveSet = Array.isArray(options.preserve) ? new Set(options.preserve) : undefined
 
-    const preserveSet = Array.isArray(options.preserve) ? new Set(options.preserve) : undefined
-
-    return async (root) => {
+  return {
+    postcssPlugin: 'postcss-theme-fold',
+    Once: async (root: Root) => {
       const themesSet = await getFromCache(options.themes, () =>
         extractVariablesFromThemes(options.themes),
       )
@@ -123,7 +106,7 @@ export default plugin<ThemeFoldOptions>(
         for (const theme of themesSet) {
           const nextRule = rule.clone()
           const processedProps: RuleProps = {}
-          const themeSelectors: AnyDict = {}
+          const themeSelectors: Record<string, any> = {}
           const brokenNodes = []
 
           // Cast to `EnhancedChildNode` cuz before we already check nodes for undefined.
@@ -142,7 +125,7 @@ export default plugin<ThemeFoldOptions>(
                 continue
               }
 
-              const variables = extractVariablesFromString(node.value);
+              const variables = extractVariablesFromString(node.value)
               // Use this variables for debug.
               const usedVariables = []
 
@@ -170,7 +153,7 @@ export default plugin<ThemeFoldOptions>(
                   nextProp.nodes.push(node)
                   processedProps[node.prop] = nextProp
 
-                  const parent = node.parent as EnhancedChildNode;
+                  const parent = node.parent as EnhancedChildNode
                   if (parent.type === 'rule') {
                     const rootSelector =
                       options.mode === 'multi-themes' ? themeSelector : parent.selector.trim()
@@ -197,15 +180,18 @@ export default plugin<ThemeFoldOptions>(
                 processedProps[node.prop]?.nodes.unshift(commentNode)
               }
 
-              const hasVariablesToPreserve = preserveSet && variables.some(variable => preserveSet.has(variable));
+              const hasVariablesToPreserve =
+                preserveSet && variables.some((variable) => preserveSet.has(variable))
               if (hasVariablesToPreserve) {
-                const originalNode = node.original as Declaration;
+                const originalNode = node.original as Declaration
                 for (let variable of variables) {
-                  const variableRe = new RegExp(`var\\(${variable}\\)`);
+                  const variableRe = new RegExp(`var\\(${variable}\\)`)
                   const { value: resolvedVariable } = getVariableMeta(theme, variable)
 
-                  const replaceWith = preserveSet.has(variable) ? `var(${variable}, ${resolvedVariable})` : resolvedVariable;
-                  originalNode.value = originalNode.value.replace(variableRe, replaceWith);
+                  const replaceWith = preserveSet.has(variable)
+                    ? `var(${variable}, ${resolvedVariable})`
+                    : resolvedVariable
+                  originalNode.value = originalNode.value.replace(variableRe, replaceWith)
                 }
 
                 processedProps[node.prop]?.nodes.push(originalNode)
@@ -292,7 +278,11 @@ export default plugin<ThemeFoldOptions>(
               !processedSelectorsSet.has(forkedRule.selector) ||
               hasUnprocessedNodes(processedPropsMap, rootSelector)
             ) {
-              checkNodesProcessed(processedPropsMap, (forkedRule.nodes as EnhancedChildNode[] || []), themeSelector)
+              checkNodesProcessed(
+                processedPropsMap,
+                (forkedRule.nodes || []) as EnhancedChildNode[],
+                themeSelector,
+              )
               processedSelectorsSet.add(forkedRule.selector)
               rules.push(forkedRule)
             }
@@ -301,6 +291,24 @@ export default plugin<ThemeFoldOptions>(
 
         rule.replaceWith(...rules)
       })
+    },
+  }
+}
+
+function getVariableMeta(
+  themeMap: StringStringMap,
+  variableName: string,
+): { themeSelector: string; value: string } {
+  const variableMeta = { themeSelector: '', value: '' }
+
+  for (const [themeSelector, variablesMap] of themeMap) {
+    if (variablesMap.has(variableName)) {
+      variableMeta.themeSelector = themeSelector
+      variableMeta.value = variablesMap.get(variableName) as string
     }
-  },
-)
+  }
+
+  return variableMeta
+}
+
+module.exports.postcss = true
