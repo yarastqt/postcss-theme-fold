@@ -1,4 +1,4 @@
-import postcss, { plugin, Root } from 'postcss'
+import postcss, { Root } from 'postcss'
 
 import { THEME_SELECTOR_RE, VARIABLE_DECL_RE, VARIABLE_FULL_RE } from './shared'
 
@@ -10,18 +10,21 @@ export type StringStringMap = Map<string, StringMap>
  */
 export async function extractThemeVariables(css: string): Promise<StringStringMap> {
   const variablesMap = new Map<string, StringMap>()
-  const postcssExtractThemeVariable = plugin(
-    'postcss-extract-theme-variable',
-    () => (root: Root) => {
+
+  const themeVariablesExtractor = {
+    postcssPlugin: 'theme-variables-extractor',
+    Once: (root: Root) => {
       root.walkRules(({ selector, nodes }) => {
         if (!THEME_SELECTOR_RE.test(selector) || !nodes) {
           return
         }
+
         for (const node of nodes) {
           if (node.type === 'decl') {
             if (!VARIABLE_DECL_RE.test(node.prop)) {
               throw new TypeError('Theme should contains only variable declarations.')
             }
+
             const prevValuesMap = variablesMap.get(selector) || new Map<string, string>()
             prevValuesMap.set(node.prop, node.value)
             variablesMap.set(selector, prevValuesMap)
@@ -29,7 +32,7 @@ export async function extractThemeVariables(css: string): Promise<StringStringMa
         }
       })
     },
-  )
+  }
 
   const processLocalVariables = () => {
     for (const [, variables] of variablesMap) {
@@ -45,7 +48,7 @@ export async function extractThemeVariables(css: string): Promise<StringStringMa
     }
   }
 
-  return postcss([postcssExtractThemeVariable()])
+  return postcss([themeVariablesExtractor])
     .process(css, { from: '' })
     .then(processLocalVariables)
     .then(() => variablesMap)

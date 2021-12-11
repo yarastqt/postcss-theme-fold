@@ -1,4 +1,3 @@
-import { ChildNode } from 'postcss'
 import { EnhancedChildNode } from './shared'
 
 export type ProcessedProps = {
@@ -60,7 +59,7 @@ export function checkNodesProcessed(
       removeValueFromMap(map, themeSelector, {
         value: node.value,
         prop: node.prop,
-        selector: node.parent.selector.trim(),
+        selector: node.parent.selector?.trim(),
       })
     }
   })
